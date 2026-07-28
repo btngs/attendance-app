@@ -1,47 +1,50 @@
-"use client"
+"use client";
 
-import React, { useState } from "react";
-import QRScanner from "../QRScanner";
+import { useQRScanner } from "../QRScanner";
 
-export default function AbsenMobilePage() {
-    const [scanResult, setScanResult] = useState<string | null>(null)
-    const [cameraStatus, setCameraStatus] = useState<string>("")
-    const handleScanSuccess = (data: string) => {
-        setScanResult(data);
-        console.log("Sukses Absensi");
-    }
-    return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-6">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-md text-center">
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">
-          Scan Absen Kedatangan
-        </h1>
-        <p className="text-sm text-gray-500 mb-6">
-          Arahkan kamera ke QR Code yang ada di layar dashboard
-        </p>
+export default function QRScanner() {
+  const { scanResult, resetScan } = useQRScanner("reader"); 
 
-        <QRScanner
-          onScanResults={handleScanSuccess}
-          onStatusChange={setCameraStatus}
-        />
+  return (
+    <main className="min-h-screen bg-white">
+      <section className="mx-auto flex min-h-screen w-full max-w-6xl items-center justify-center px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
+        <div className="flex flex-col items-center justify-center">
+          {scanResult ? (
+            <div className="w-full max-w-xs rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center shadow-sm">
+              <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">
+                Absen Berhasil
+              </p>
+              <p className="mt-2 break-all text-sm font-semibold text-gray-800">
+                {scanResult}
+              </p>
+              <button
+                onClick={resetScan}
+                className="mt-4 w-full rounded-xl bg-amber-500 py-2 text-sm font-semibold text-white transition hover:bg-amber-600"
+              >
+                Scan Lagi
+              </button>
+            </div>
+          ) : (
+            <div className="w-full max-w-xs overflow-hidden rounded-2xl border-2 border-amber-500 bg-black shadow-md">
+              <div id="reader" className="w-full" />
+            </div>
+          )}
 
-        {cameraStatus && (
-          <p className="mt-4 text-xs text-amber-700">
-            {cameraStatus}
-          </p>
-        )}
-
-        {scanResult && (
-          <div className="mt-6 rounded-xl bg-green-50 p-4 border border-green-200">
-            <p className="text-xs font-semibold text-green-600 uppercase tracking-wider">
-              QR Code Terdeteksi:
-            </p>
-            <p className="mt-1 text-sm font-bold text-green-800 break-all">
-              {scanResult}
-            </p>
-          </div>
-        )}
-      </div>
+          <style jsx global>{`
+            #reader {
+              border: none !important;
+            }
+            #reader video {
+              object-fit: cover !important;
+              border-radius: 0.8rem !important;
+            }
+            #reader__dashboard,
+            #reader__status_span {
+              display: none !important;
+            }
+          `}</style>
+        </div>
+      </section>
     </main>
-    )
+  );
 }
