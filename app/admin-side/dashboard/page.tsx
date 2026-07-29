@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import QRCode from "react-qr-code";
-import Navbar from "../components/Navbar"
+import Navbar from "../../components/Navbar"
 
 
 const attendanceRows = [

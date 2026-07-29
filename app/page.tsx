@@ -1,63 +1,67 @@
-import Image from "next/image";
+"use client"
 
-export default function Home() {
+import React from 'react';
+import Image from 'next/image';
+import Logo from './src/assets/logo-kemas.png'
+
+export default function RoleSelection() {
+  const handleSelectRole = (role: string) => {
+    console.log(`Role dipilih: ${role}`);
+    // Tambahkan navigasi atau logika setelah role dipilih di sini
+  };
+
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col items-center justify-center px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
-      <div className="flex w-full flex-1 flex-col items-center justify-between bg-white font-sans">
-        <Image
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="relative min-h-screen w-full bg-white flex flex-col items-center justify-center p-4 overflow-hidden select-none">
+      
+      {/* --- Background Decorative Circles --- */}
+      <div className="absolute top-12 left-1/4 w-32 h-32 bg-[#FFF6E5] rounded-full opacity-80 pointer-events-none" />
+      <div className="absolute top-24 right-[15%] w-40 h-40 bg-[#FFF6E5] rounded-full opacity-80 pointer-events-none" />
+      <div className="absolute -bottom-16 -left-16 w-80 h-80 bg-[#FFF6E5] rounded-full opacity-80 pointer-events-none" />
+      <div className="absolute bottom-12 right-[8%] w-36 h-36 bg-[#FFF6E5] rounded-full opacity-80 pointer-events-none" />
+
+      {/* --- Main Content Container --- */}
+      <div className="relative z-10 flex flex-col items-center max-w-md w-full text-center">
+        
+        {/* Logo Section */}
+        <div className="mb-12 flex flex-col items-center">
+          <div className="mx-auto flex flex-col items-center text-center">
+            <div className="flex h-32 w-64 items-center justify-center">
+                <Image
+                src={Logo}
+                alt="Kemas Foundation"
+                width={256}
+                height={256}
+                priority
+              />
+            </div>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+        {/* Title */}
+        <h1 className="text-lg md:text-xl font-bold text-[#E58A1F] mb-8">
+          Pilih role anda untuk lanjut ke halaman berikutnya
+        </h1>
+
+        {/* Role Buttons */}
+        <div className="w-full space-y-4 px-4">
+          {/* Button 1: Karyawan */}
+          <button
+            onClick={() => handleSelectRole('Karyawan')}
+            className="w-full py-3.5 px-6 bg-[#FFF2D6] hover:bg-[#FFE8B8] text-[#D4801D] font-bold rounded-xl shadow-md hover:shadow-lg transition-all duration-200 active:scale-[0.99]"
           >
-            <Image
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            Karyawan
+          </button>
+
+          {/* Button 2: Admin */}
+          <button
+            onClick={() => handleSelectRole('Admin')}
+            className="w-full py-3.5 px-6 bg-[#F59E0B] hover:bg-[#D97706] text-white font-bold rounded-xl shadow-md hover:shadow-lg transition-all duration-200 active:scale-[0.99]"
           >
-            Documentation
-          </a>
+            Admin
+          </button>
         </div>
+
       </div>
-    </main>
+    </div>
   );
 }
