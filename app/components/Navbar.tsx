@@ -30,7 +30,7 @@ export default function Navbar() {
             href="/recap"
             className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-amber-50 hover:text-amber-600"
           >
-            Barcode
+            Barcode 
           </a>
           <a
             href="/recap"
