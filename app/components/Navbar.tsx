@@ -21,7 +21,7 @@ export default function Navbar() {
 
         <nav className="hidden items-center justify-center gap-2 justify-self-center bg-white px-2 py-1 sm:flex">
           <a
-            href="/dashboard"
+            href="/admin-side/dashboard"
             className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-[#FFF3D6] hover:text-[#F5A623]" 
           >
             Dashboard
@@ -33,22 +33,10 @@ export default function Navbar() {
             Barcode 
           </a>
           <a
-            href="/recap"
+            href="/admin-side/recap"
             className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-amber-50 hover:text-amber-600"
           >
             Rekapitulasi
-          </a>
-          <a
-            href="#qr-code"
-            className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-amber-50 hover:text-amber-600"
-          >
-            Karyawan
-          </a>
-          <a
-            href="#qr-code"
-            className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-amber-50 hover:text-amber-600"
-          >
-            Pengajuan
           </a>
         </nav>
 
