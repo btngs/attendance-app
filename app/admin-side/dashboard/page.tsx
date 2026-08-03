@@ -4,7 +4,7 @@ import AttendanceTable from "../../components/AttendanceTable";
 
 export default function DashboardPage() {
   return(
-    <main style={{ backgroundColor: "#f5f0e8", minHeight: "100vh",  overflowX: "hidden" }}>
+    <main style={{ backgroundColor: "#fefefe", minHeight: "100vh",  overflowX: "hidden" }}>
       <Navbar />
 
       <section style={{ 
