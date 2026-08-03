@@ -1,4 +1,4 @@
-import logo from "../src/assets/logo-kemas.png";
+import logo from "../assets/logo-kemas.png"
 import Image from "next/image";
 
 export default function Navbar() {

@@ -1,4 +1,4 @@
-import SummaryCard from "@/app/components/SummaryCard";
+import SummaryCard from "../../components/SummaryCard";
 import Navbar from "../../components/Navbar";
 import AttendanceTable from "../../components/AttendanceTable";
 

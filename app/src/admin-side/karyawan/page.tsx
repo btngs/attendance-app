@@ -39,7 +39,7 @@ export default function KaryawanPage() {
         </div>
 
         {/* Tabel Karyawan - Saat ini kosong, nanti diisi dari database */}
-        <EmployeeTable data={employeeData} />
+        <EmployeeTable />
       </section>
     </main>
   );
