@@ -38,6 +38,12 @@ export default function Navbar() {
           >
             Rekapitulasi
           </a>
+          <a
+            href="/admin-side/karyawan"
+            className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-[#FFF3D6] hover:text-[#F5A623]" 
+          >
+            Karyawan
+          </a>
         </nav>
 
         <div className="flex justify-end justify-self-end">
