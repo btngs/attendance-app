@@ -1,91 +1,39 @@
-import SummaryCard from "../../components/SummaryCard";
-import Navbar from "../../components/Navbar";
-import AttendanceTable from "../../components/AttendanceTable";
+'use client';
+
+import { useState, useMemo } from 'react';
+import Navbar from '../../components/Navbar';
+import SummaryCard from '../../components/SummaryCard';
+import AttendanceTable from '../../components/recap/AttendanceTable';
+
+// ⚠️ DATA DUMMY SEMENTARA (Akan dihapus nanti saat API siap)
+const mockSummary = { hadir: 12, izin: 2, sakit: 1, tidakHadir: 3 };
+const mockAttendance = [
+  { id: '1', date: '2026-08-03', employeeId: 'P-001', employeeName: 'Denias Raditya', role: 'Staff', timeIn: '08:00', timeOut: '17:00', status: 'hadir' },
+  { id: '2', date: '2026-08-03', employeeId: 'P-002', employeeName: 'Bintang Syahri', role: 'Magang', timeIn: '08:15', timeOut: '17:00', status: 'terlambat' },
+  { id: '3', date: '2026-08-03', employeeId: 'P-003', employeeName: 'Siti Aminah', role: 'Tetap', timeIn: null, timeOut: null, status: 'izin' },
+];
 
 export default function DashboardPage() {
-  return(
-    <main style={{ backgroundColor: "#fefefe", minHeight: "100vh",  overflowX: "hidden" }}>
+  const [attendanceData] = useState(mockAttendance);
+  const [summary] = useState(mockSummary);
+
+  return (
+    <main style={{ backgroundColor: '#ffffff', minHeight: '100vh' }}>
       <Navbar />
-
-      <section style={{ 
-        padding: "10px 40px",
-        maxWidth: "1200px",
-        margin: "0 auto"
-        }}>
-        <h1 style={{ 
-          color: "#e8a838" ,
-          fontSize: "26px",
-          fontWeight: "bold",
-          marginBottom: "10px"
-         }}>
+      <section style={{ padding: '20px 60px', maxWidth: '1200px', margin: '0 auto' }}>
+        <h1 style={{ color: '#e8a838', fontSize: '26px', fontWeight: 'bold', marginBottom: '20px' }}>
           Absensi hari ini
-         </h1>
+        </h1>
 
-         <div style={{ 
-          display: "flex",
-          gap: "15px",
-          marginBottom: "40px"
-         }}>
-          <SummaryCard 
-            icon="👥"
-            count={5}
-            label="Hadir"
-            bgColor="rgba(181, 225, 139, 0.3)"
-            iconBgColor="#ffffff"
-          />
-
-          <SummaryCard
-            icon="✉️"
-            count={5}
-            label="Izin"
-            bgColor="rgba(0, 136, 255, 0.3)"
-            iconBgColor="#ffffff"
-          />
-
-          <SummaryCard
-            icon="📋"
-            count={5}
-            label="Sakit"
-            bgColor="rgba(255, 204, 0, 0.3)"
-            iconBgColor="#ffffff"
-          />
-
-          <SummaryCard
-            icon="⛔"
-            count={5}
-            label="Tidak/belum hadir"
-            bgColor="rgba(217, 0, 0, 0.3)"
-            iconBgColor="#ffffff"
-          />
-         </div>
-
-          <AttendanceTable />
-
-          {/* Pagination */}
-        <div style={{ 
-          display: "flex", 
-          justifyContent: "flex-end", 
-          alignItems: "center", 
-          gap: "8px",
-          padding: "16px",
-          borderTop: "1px solid #f0f0f0"
-        }}>
-          <button style={pageButtonStyle}>&lt;</button>
-          <button style={{...pageButtonStyle, backgroundColor: "#e8a838", color: "white"}}>1</button>
-          <button style={pageButtonStyle}>2</button>
-          <button style={pageButtonStyle}>3</button>
-          <button style={pageButtonStyle}>&gt;</button>
+        <div style={{ display: 'flex', gap: '20px', marginBottom: '30px', flexWrap: 'wrap' }}>
+          <SummaryCard icon="👥" count={summary.hadir} label="Hadir" bgColor="rgba(76, 175, 80, 0.3)" iconBgColor="#ffffff" />
+          <SummaryCard icon="✉️" count={summary.izin} label="Izin" bgColor="rgba(33, 150, 243, 0.3)" iconBgColor="#ffffff" />
+          <SummaryCard icon="📋" count={summary.sakit} label="Sakit" bgColor="rgba(255, 204, 0, 0.3)" iconBgColor="#ffffff" />
+          <SummaryCard icon="⛔" count={summary.tidakHadir} label="Tidak/belum hadir" bgColor="rgba(244, 67, 54, 0.3)" iconBgColor="#ffffff" />
         </div>
+
+        <AttendanceTable data={attendanceData} />
       </section>
     </main>
   );
 }
-
-const pageButtonStyle: React.CSSProperties = {
-  padding: "6px 12px",
-  border: "1px solid #ddd",
-  borderRadius: "6px",
-  backgroundColor: "white",
-  cursor: "pointer",
-  fontSize: "14px"
-};
