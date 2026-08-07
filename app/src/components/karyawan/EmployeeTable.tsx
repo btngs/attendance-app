@@ -1,147 +1,163 @@
-import React, { useState, useEffect } from 'react';
-import { getAllUsers } from "../../services/api";
+import { useState } from 'react';
+import ActionMenu from './ActionMenu';
 
+// Interface untuk data yang akan datang dari database nanti
 export interface Employee {
-  id: string | number;
+  id: string;
   name: string;
   email: string;
   role: string;
+  phone?: string;
+  address?: string;
+  gender?: string;
+  division?: string;
+  position?: string;
+  education?: string;
+  emergencyContact?: string;
+  photo?: string;
 }
 
-function getRoleStyle(role: string | undefined | null) {
-  const safeRole = (role || '').toLowerCase();
+interface EmployeeTableProps {
+  data: Employee[];
+  onEdit: (employee: Employee) => void;
+  onDelete: (employee: Employee) => void;
+}
 
-  switch (safeRole) {
+// Warna tema utama, disamakan dengan komponen lain di aplikasi
+// (Navbar, AddButton, SearchBar, Dashboard) agar tampilan konsisten
+const PRIMARY = '#e8a838';
+const PRIMARY_LIGHT = '#fef3e2';
+const BORDER = '#f0ece3';
+
+// Warna hover baris, disamakan PERSIS dengan warna hover menu di Navbar
+const ROW_HOVER_BG = '#FFF3D6';
+const ROW_HOVER_ACCENT = '#F5A623';
+
+// Fungsi untuk menentukan warna badge role
+function getRoleStyle(role: string) {
+  switch (role.toLowerCase()) {
     case 'tetap':
-    case 'karyawan':
       return { backgroundColor: '#e8f5e9', color: '#2e7d32' };
     case 'magang':
       return { backgroundColor: '#e3f2fd', color: '#1565c0' };
     case 'kontrak':
-      return { backgroundColor: '#fff9e6', color: '#f59e0b' };
+      return { backgroundColor: PRIMARY_LIGHT, color: PRIMARY };
     default:
       return { backgroundColor: '#f5f5f5', color: '#666' };
   }
 }
 
-function getInitial(name: string) {
-  return name ? name.charAt(0).toUpperCase() : '?';
-}
-
-export default function EmployeeTable() {
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchEmployees = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const response = await getAllUsers();
-        const userList = response?.data || response || [];
-        setEmployees(userList);
-      } catch (err: any) {
-        console.error("Gagal mengambil data karyawan:", err);
-        setError(err.message || "Gagal memuat data dari server");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchEmployees();
-  }, []);
+export default function EmployeeTable({ data, onEdit, onDelete }: EmployeeTableProps) {
+  // Baris yang sedang di-hover mouse, dan baris yang dropdown-nya sedang terbuka
+  // (dropdown tetap terlihat walau mouse sudah geser, biar tidak tiba-tiba menghilang)
+  const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
+  const [openMenuRowId, setOpenMenuRowId] = useState<string | null>(null);
 
   return (
     <div style={{
       backgroundColor: '#ffffff',
       borderRadius: '12px',
-      overflow: 'hidden',
-      border: '1px solid #f0f0f0'
+      overflow: 'visible',
+      border: `1px solid ${BORDER}`
     }}>
       <table style={{
         width: '100%',
         borderCollapse: 'collapse'
       }}>
+        {/* Header Tabel - Selalu Terlihat */}
         <thead>
-          <tr style={{ backgroundColor: '#fef9e7' }}>
+          <tr style={{ backgroundColor: PRIMARY_LIGHT }}>
+            <th style={{ ...headerStyle, width: '60px' }}>No</th>
             <th style={headerStyle}>Nama Karyawan</th>
             <th style={headerStyle}>Email</th>
             <th style={headerStyle}>Role</th>
-            <th style={headerStyle}></th>
+            <th style={{ ...headerStyle, width: '48px' }}></th>
           </tr>
         </thead>
 
+        {/* Body Tabel */}
         <tbody>
-          {loading ? (
+          {data.length === 0 ? (
+            // Jika data kosong, tampilkan pesan di dalam tabel
             <tr>
-              <td colSpan={4} style={emptyStyle}>
-                Memuat data karyawan...
-              </td>
-            </tr>
-          ) : error ? (
-            <tr>
-              <td colSpan={4} style={{ ...emptyStyle, color: '#d32f2f' }}>
-                ⚠️ {error}
-              </td>
-            </tr>
-          ) : employees.length === 0 ? (
-            <tr>
-              <td colSpan={4} style={emptyStyle}>
+              <td
+                colSpan={5}
+                style={{
+                  padding: '40px 20px',
+                  textAlign: 'center',
+                  color: '#999',
+                  fontSize: '14px'
+                }}
+              >
                 Belum ada data karyawan
               </td>
             </tr>
           ) : (
-            employees.map((employee) => (
-              <tr key={employee.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                <td style={cellStyle}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '50%',
-                      backgroundColor: '#e3f2fd',
-                      color: '#1565c0',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontWeight: '600',
-                      fontSize: '14px'
-                    }}>
-                      {getInitial(employee.name)}
+            // Jika ada data, tampilkan semua baris
+            data.map((employee, index) => {
+              const isRowActive = hoveredRowId === employee.id || openMenuRowId === employee.id;
+
+              return (
+                <tr
+                  key={employee.id}
+                  onMouseEnter={() => setHoveredRowId(employee.id)}
+                  onMouseLeave={() => setHoveredRowId(null)}
+                  style={{
+                    borderBottom: `1px solid ${BORDER}`,
+                    backgroundColor: isRowActive ? ROW_HOVER_BG : 'transparent',
+                    boxShadow: isRowActive ? `inset 0 0 0 1px ${ROW_HOVER_ACCENT}33` : 'none',
+                    transition: 'background-color 150ms ease, box-shadow 150ms ease',
+                  }}
+                >
+                  <td style={{ ...cellStyle, color: '#999' }}>{index + 1}</td>
+                  <td style={cellStyle}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      {/* Avatar placeholder */}
+                      <div style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '50%',
+                        backgroundColor: '#e0e0e0',
+                        backgroundImage: employee.photo ? `url(${employee.photo})` : undefined,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        flexShrink: 0
+                      }}></div>
+                      {employee.name}
                     </div>
-                    <span>{employee.name}</span>
-                  </div>
-                </td>
-                <td style={cellStyle}>{employee.email}</td>
-                <td style={cellStyle}>
-                  <span style={{
-                    ...getRoleStyle(employee.role),
-                    padding: '6px 16px',
-                    borderRadius: '20px',
-                    fontSize: '13px',
-                    fontWeight: '500',
-                    display: 'inline-block',
-                    textTransform: 'capitalize'
-                  }}>
-                    {employee.role || '-'}
-                  </span>
-                </td>
-                <td style={cellStyle}>
-                  <button style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: '18px',
-                    color: '#999',
-                    padding: '4px 8px'
-                  }}>
-                    ⋮
-                  </button>
-                </td>
-              </tr>
-            ))
+                  </td>
+                  <td style={cellStyle}>{employee.email}</td>
+                  <td style={cellStyle}>
+                    <span style={{
+                      ...getRoleStyle(employee.role),
+                      padding: '6px 16px',
+                      borderRadius: '20px',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      display: 'inline-block'
+                    }}>
+                      {employee.role}
+                    </span>
+                  </td>
+                  <td style={cellStyle}>
+                    <div
+                      style={{
+                        opacity: isRowActive ? 1 : 0,
+                        transition: 'opacity 150ms ease',
+                        display: 'flex',
+                        justifyContent: 'flex-end',
+                      }}
+                    >
+                      <ActionMenu
+                        onEdit={() => onEdit(employee)}
+                        onDelete={() => onDelete(employee)}
+                        onOpenChange={(isOpen) => setOpenMenuRowId(isOpen ? employee.id : null)}
+                      />
+                    </div>
+                  </td>
+                </tr>
+              );
+            })
           )}
         </tbody>
       </table>
@@ -154,18 +170,11 @@ const headerStyle: React.CSSProperties = {
   textAlign: 'left',
   fontSize: '14px',
   fontWeight: '600',
-  color: '#555'
+  color: PRIMARY
 };
 
 const cellStyle: React.CSSProperties = {
   padding: '14px 16px',
   fontSize: '14px',
   color: '#333'
-};
-
-const emptyStyle: React.CSSProperties = {
-  padding: '40px 20px',
-  textAlign: 'center',
-  color: '#999',
-  fontSize: '14px'
 };
