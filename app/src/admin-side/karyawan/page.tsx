@@ -63,9 +63,9 @@ export default function KaryawanPage() {
 
       setIsDeleteModalOpen(false);
       setDeletingEmployee(null);
-      showToast('✅ Karyawan berhasil dihapus.', 'success');
+      showToast('Karyawan berhasil dihapus.', 'success');
     } catch {
-      showToast('❌ Gagal menghapus karyawan. Coba lagi.', 'error');
+      showToast('Gagal menghapus karyawan. Coba lagi.', 'error');
     } finally {
       setIsDeleting(false);
     }
@@ -77,12 +77,12 @@ export default function KaryawanPage() {
       setEmployeeData((prev) =>
         prev.map((e) => (e.id === editingEmployee.id ? { ...formData, id: editingEmployee.id } : e))
       );
-      showToast('✅ Data karyawan berhasil diperbarui.', 'success');
+      showToast('Karyawan berhasil diperbarui.', 'success');
     } else {
       // Mode Tambah -> masukkan baris baru
       const newEmployee: Employee = { ...formData, id: crypto.randomUUID() };
       setEmployeeData((prev) => [...prev, newEmployee]);
-      showToast('✅ Karyawan berhasil ditambahkan.', 'success');
+      showToast('Karyawan berhasil ditambahkan.', 'success');
     }
     setIsModalOpen(false);
     setEditingEmployee(null);
@@ -94,7 +94,7 @@ export default function KaryawanPage() {
   }
 
   return (
-    <main style={{ backgroundColor: '#f5f0e8', minHeight: '100vh' }}>
+    <main style={{ backgroundColor: '#ffffff', minHeight: '100vh' }}>
       <Navbar />
 
       <section style={{ 
