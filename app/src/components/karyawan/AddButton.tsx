@@ -8,9 +8,9 @@ export default function AddButton({ onClick }: AddButtonProps) {
       onClick={onClick}
       style={{
         padding: '12px 24px',
-        border: 'none',
         borderRadius: '8px',
         backgroundColor: '#fef3e2',
+        border: '1.5px solid #e8a838',
         color: '#e8a838',
         cursor: 'pointer',
         fontSize: '14px',
