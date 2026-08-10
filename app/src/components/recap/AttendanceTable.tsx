@@ -1,205 +1,182 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from "react";
+import API from "../../services/api"; // Helper Axios yang sudah disetting ke Express / Vercel
 
+// Interface untuk tipe data absensi dari API
 interface AttendanceRecord {
-  id: string;
-  date: string;
-  employeeId: string;
-  employeeName: string;
+  id: number;
+  name?: string;
   role: string;
-  timeIn: string | null;
-  timeOut: string | null;
-  status: string;
+  timeIn?: string;
+  timeOut?: string;
+  status: string; 
+  jam_masuk?: string;
+  jam_keluar?: string;
 }
 
-interface AttendanceTableProps {
-  data?: AttendanceRecord[];
-}
-
-// Fungsi untuk menentukan warna badge status
+// Fungsi untuk menentukan warna badge status (Sesuai milik Anda)
 function getStatusStyle(status: string) {
-  switch (status.toLowerCase()) {
-    case 'hadir':
-      return { backgroundColor: '#e8f5e9', color: '#2e7d32' };
-    case 'tidak hadir':
-      return { backgroundColor: '#fde8e8', color: '#c62828' };
-    case 'terlambat':
-      return { backgroundColor: '#fff9e6', color: '#f59e0b' };
-    case 'izin':
-    case 'wfh':
-    case 'sakit':
-      return { backgroundColor: '#e3f2fd', color: '#1565c0' };
+  const normalizedStatus = status?.toLowerCase();
+  switch (normalizedStatus) {
+    case "hadir":
+      return { backgroundColor: "#e8f5e9", color: "#2e7d32" };
+    case "tidak hadir":
+    case "alpa":
+      return { backgroundColor: "#fde8e8", color: "#c62828" };
+    case "izin":
+    case "cuti":
+    case "sakit":
+      return { backgroundColor: "#e3f2fd", color: "#1565c0" };
     default:
-      return { backgroundColor: '#f5f5f5', color: '#666' };
+      return { backgroundColor: "#f5f5f5", color: "#666" };
   }
 }
 
-const ITEMS_PER_PAGE = 7;
+export default function AttendanceTable() {
+  const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [errorMessage, setErrorMessage] = useState<string>("");
 
-export default function AttendanceTable({ data = [] }: AttendanceTableProps) {
-  const [currentPage, setCurrentPage] = useState(1);
+  // Mengambil data absensi dari backend Express/Vercel saat komponen dimuat
+  useEffect(() => {
+    fetchAttendanceData();
+  }, []);
 
-  // Hitung total halaman
-  const totalPages = Math.ceil(data.length / ITEMS_PER_PAGE);
+  const fetchAttendanceData = async () => {
+    try {
+      setLoading(true);
+      setErrorMessage("");
 
-  // Ambil data untuk halaman saat ini
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const currentData = data.slice(startIndex, endIndex);
+      // Memanggil endpoint GET /api/attendance
+      const response = await API.get("/attendance");
+      
+      // Menyesuaikan struktur data response dari Express
+      const data = response.data?.data || response.data || [];
+      setAttendanceData(data);
+    } catch (err: any) {
+      console.error("Gagal mengambil data absensi:", err);
+      setErrorMessage(
+        err.response?.data?.message || "Gagal memuat data absensi dari server."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div>
-      {/* Tabel */}
-      <div style={{
-        backgroundColor: '#ffffff',
-        borderRadius: '12px',
-        overflow: 'hidden'
-      }}>
-        <table style={{
-          width: '100%',
-          borderCollapse: 'collapse'
-        }}>
-          {/* Header Tabel - Selalu Terlihat */}
-          <thead>
-            <tr style={{ backgroundColor: '#fef9e7' }}>
-              <th style={headerStyle}>Nama Karyawan</th>
-              <th style={headerStyle}>Role</th>
-              <th style={headerStyle}>Waktu Masuk</th>
-              <th style={headerStyle}>Waktu Keluar</th>
-              <th style={headerStyle}>Status</th>
-            </tr>
-          </thead>
-
-          {/* Body Tabel */}
-          <tbody>
-            {currentData.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={5}
-                  style={{
-                    padding: '40px 20px',
-                    textAlign: 'center',
-                    color: '#999',
-                    fontSize: '14px'
-                  }}
-                >
-                  Belum ada data absensi
-                </td>
-              </tr>
-            ) : (
-              currentData.map((row, index) => (
-                <tr key={row.id || index} style={{
-                  borderBottom: '1px solid #f0f0f0'
-                }}>
-                  <td style={cellStyle}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <div style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '50%',
-                        backgroundColor: '#e0e0e0'
-                      }}></div>
-                      {row.employeeName}
-                    </div>
-                  </td>
-                  <td style={cellStyle}>{row.role || '-'}</td>
-                  <td style={cellStyle}>{row.timeIn || '-'}</td>
-                  <td style={cellStyle}>{row.timeOut || '-'}</td>
-                  <td style={cellStyle}>
-                    <span style={{
-                      ...getStatusStyle(row.status),
-                      padding: '6px 16px',
-                      borderRadius: '20px',
-                      fontSize: '13px',
-                      fontWeight: '500',
-                      display: 'inline-block'
-                    }}>
-                      {row.status}
-                    </span>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pagination - Hanya muncul jika data lebih dari 7 */}
-      {totalPages > 1 && (
+    <div style={{ 
+      backgroundColor: "#ffffff", 
+      borderRadius: "12px",
+      overflow: "hidden",
+      boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
+    }}>
+      {/* Pesan Error jika API gagal dipanggil */}
+      {errorMessage && (
         <div style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          alignItems: 'center',
-          gap: '8px',
-          marginTop: '20px'
+          padding: "12px 16px",
+          backgroundColor: "#fde8e8",
+          color: "#c62828",
+          fontSize: "14px",
+          borderBottom: "1px solid #f5c6cb"
         }}>
-          {/* Tombol Previous */}
-          <button
-            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-            disabled={currentPage === 1}
-            style={{
-              ...pageButtonStyle,
-              opacity: currentPage === 1 ? 0.5 : 1,
-              cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
-            }}
-          >
-            &lt;
-          </button>
-
-          {/* Nomor Halaman */}
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-            <button
-              key={page}
-              onClick={() => setCurrentPage(page)}
-              style={{
-                ...pageButtonStyle,
-                backgroundColor: currentPage === page ? '#e8a838' : 'white',
-                color: currentPage === page ? 'white' : '#333',
-                border: currentPage === page ? '1px solid #e8a838' : '1px solid #ddd'
-              }}
-            >
-              {page}
-            </button>
-          ))}
-
-          {/* Tombol Next */}
-          <button
-            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-            disabled={currentPage === totalPages}
-            style={{
-              ...pageButtonStyle,
-              opacity: currentPage === totalPages ? 0.5 : 1,
-              cursor: currentPage === totalPages ? 'not-allowed' : 'pointer'
-            }}
-          >
-            &gt;
-          </button>
+          {errorMessage}
         </div>
       )}
+
+      <table style={{ 
+        width: "100%", 
+        borderCollapse: "collapse" 
+      }}>
+        {/* Header Tabel */}
+        <thead>
+          <tr style={{ backgroundColor: "#fef9e7" }}>            
+            <th style={headerStyle}>Nama Karyawan</th>
+            <th style={headerStyle}>Role</th>
+            <th style={headerStyle}>Waktu Masuk</th>
+            <th style={headerStyle}>Waktu Keluar</th>
+            <th style={headerStyle}>Status</th>
+            <th style={headerStyle}></th>
+          </tr>
+        </thead>
+
+        {/* Body Tabel */}
+        <tbody>
+          {loading ? (
+            <tr>
+              <td colSpan={7} style={{ ...cellStyle, textAlign: "center", color: "#888", padding: "24px" }}>
+                Memuat data absensi...
+              </td>
+            </tr>
+          ) : attendanceData.length === 0 ? (
+            <tr>
+              <td colSpan={7} style={{ ...cellStyle, textAlign: "center", color: "#888", padding: "24px" }}>
+                Belum ada data absensi.
+              </td>
+            </tr>
+          ) : (
+            attendanceData.map((row, index) => (
+              <tr key={row.id || index} style={{ 
+                borderBottom: "1px solid #f0f0f0" 
+              }}>
+                <td style={cellStyle}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    {/* Avatar placeholder */}
+                    <div style={{
+                      width: "32px",
+                      height: "32px",
+                      borderRadius: "50%",
+                      backgroundColor: "#e0e0e0"
+                    }}></div>
+                    {row.name || "Karyawan"}
+                  </div>
+                </td>
+                <td style={cellStyle}>{row.role}</td>
+                {/* Menyuasuaikan nama properti response jika dari MySQL/API (timeIn atau jam_masuk) */}
+                <td style={cellStyle}>{row.timeIn || row.jam_masuk || "-"}</td>
+                <td style={cellStyle}>{row.timeOut || row.jam_keluar || "-"}</td>
+                <td style={cellStyle}>
+                  <span style={{
+                    ...getStatusStyle(row.status),
+                    padding: "6px 16px",
+                    borderRadius: "20px",
+                    fontSize: "13px",
+                    fontWeight: "500",
+                    textTransform: "capitalize"
+                  }}>
+                    {row.status || "hadir"}
+                  </span>
+                </td>
+                <td style={cellStyle}>
+                  <button style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: "18px",
+                    color: "#999"
+                  }}>
+                    ⋮
+                  </button>
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
     </div>
   );
 }
 
 const headerStyle: React.CSSProperties = {
-  padding: '14px 16px',
-  textAlign: 'left',
-  fontSize: '14px',
-  fontWeight: '600',
-  color: '#555'
+  padding: "14px 16px",
+  textAlign: "left",
+  fontSize: "14px",
+  fontWeight: "600",
+  color: "#555"
 };
 
 const cellStyle: React.CSSProperties = {
-  padding: '14px 16px',
-  fontSize: '14px',
-  color: '#333'
-};
-
-const pageButtonStyle: React.CSSProperties = {
-  padding: '6px 12px',
-  border: '1px solid #ddd',
-  borderRadius: '6px',
-  backgroundColor: 'white',
-  fontSize: '14px',
-  fontWeight: '500'
+  padding: "14px 16px",
+  fontSize: "14px",
+  color: "#333"
 };

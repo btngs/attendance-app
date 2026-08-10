@@ -29,6 +29,10 @@ export default function KaryawanPage() {
     employee.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  function handleEmployeesLoaded(data: Employee[]) {
+    setEmployeeData(data);
+  }
+
   function handleOpenAddModal() {
     setEditingEmployee(null); // pastikan mode "Tambah", bukan "Edit"
     setIsModalOpen(true);
@@ -119,11 +123,20 @@ export default function KaryawanPage() {
           <AddButton onClick={handleOpenAddModal} />
         </div>
 
+        <div style={{
+          marginBottom: '20px',
+          color: '#555',
+          fontSize: '14px'
+        }}>
+          Total karyawan: {employeeData.length}
+        </div>
+
         {/* Tabel Karyawan */}
         <EmployeeTable
           data={filteredEmployees}
           onEdit={handleOpenEditModal}
           onDelete={handleRequestDelete}
+          onDataLoaded={handleEmployeesLoaded}
         />
       </section>
 

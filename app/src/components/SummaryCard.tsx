@@ -1,6 +1,6 @@
 interface SummaryCardProps {
   icon: string;
-  count: number;
+  count: number | string;
   label: string;
   bgColor: string;
   iconBgColor: string;

@@ -1,21 +1,34 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import Navbar from '../../components/Navbar';
 import SummaryCard from '../../components/SummaryCard';
 import AttendanceTable from '../../components/recap/AttendanceTable';
 
-// ⚠️ DATA DUMMY SEMENTARA (Akan dihapus nanti saat API siap)
-const mockSummary = { hadir: 12, izin: 2, sakit: 1, tidakHadir: 3 };
-const mockAttendance = [
-  { id: '1', date: '2026-08-03', employeeId: 'P-001', employeeName: 'Denias Raditya', role: 'Staff', timeIn: '08:00', timeOut: '17:00', status: 'hadir' },
-  { id: '2', date: '2026-08-03', employeeId: 'P-002', employeeName: 'Bintang Syahri', role: 'Magang', timeIn: '08:15', timeOut: '17:00', status: 'terlambat' },
-  { id: '3', date: '2026-08-03', employeeId: 'P-003', employeeName: 'Siti Aminah', role: 'Tetap', timeIn: null, timeOut: null, status: 'izin' },
-];
-
 export default function DashboardPage() {
-  const [attendanceData] = useState(mockAttendance);
-  const [summary] = useState(mockSummary);
+  const [summary, setSummary] = useState({ hadir: 0, izin: 0, sakit: 0, tidakHadir: 0 });
+  const [loading, setLoading] = useState(true);
+
+  // Menerima data hasil fetch dari komponen AttendanceTable
+  const handleDataLoaded = (data: any[]) => {
+    const counts = { hadir: 0, izin: 0, sakit: 0, tidakHadir: 0 };
+
+    data.forEach((item) => {
+      const status = (item.status || '').toLowerCase();
+      if (status === 'hadir' || status === 'terlambat') {
+        counts.hadir += 1;
+      } else if (status === 'izin' || status === 'cuti' || status === 'wfh') {
+        counts.izin += 1;
+      } else if (status === 'sakit') {
+        counts.sakit += 1;
+      } else if (status === 'tidak hadir' || status === 'alpa') {
+        counts.tidakHadir += 1;
+      }
+    });
+
+    setSummary(counts);
+    setLoading(false);
+  };
 
   return (
     <main style={{ backgroundColor: '#ffffff', minHeight: '100vh' }}>
@@ -25,14 +38,17 @@ export default function DashboardPage() {
           Absensi hari ini
         </h1>
 
+        {/* Card Summary (Terganti Otomatis saat data tabel siap) */}
         <div style={{ display: 'flex', gap: '20px', marginBottom: '30px', flexWrap: 'wrap' }}>
-          <SummaryCard icon="👥" count={summary.hadir} label="Hadir" bgColor="rgba(76, 175, 80, 0.3)" iconBgColor="#ffffff" />
-          <SummaryCard icon="✉️" count={summary.izin} label="Izin" bgColor="rgba(33, 150, 243, 0.3)" iconBgColor="#ffffff" />
-          <SummaryCard icon="📋" count={summary.sakit} label="Sakit" bgColor="rgba(255, 204, 0, 0.3)" iconBgColor="#ffffff" />
-          <SummaryCard icon="⛔" count={summary.tidakHadir} label="Tidak/belum hadir" bgColor="rgba(244, 67, 54, 0.3)" iconBgColor="#ffffff" />
+          <SummaryCard icon="👥" count={loading ? '...' : summary.hadir} label="Hadir" bgColor="rgba(76, 175, 80, 0.3)" iconBgColor="#ffffff" />
+          <SummaryCard icon="✉️" count={loading ? '...' : summary.izin} label="Izin" bgColor="rgba(33, 150, 243, 0.3)" iconBgColor="#ffffff" />
+          <SummaryCard icon="📋" count={loading ? '...' : summary.sakit} label="Sakit" bgColor="rgba(255, 204, 0, 0.3)" iconBgColor="#ffffff" />
+          <SummaryCard icon="⛔" count={loading ? '...' : summary.tidakHadir} label="Tidak/belum hadir" bgColor="rgba(244, 67, 54, 0.3)" iconBgColor="#ffffff" />
         </div>
 
-        <AttendanceTable data={attendanceData} />
+        {/* Panggil komponen tabel langsung tanpa prop data */}
+        {/* Cast props to any to satisfy TypeScript if AttendanceTable has no declared props */}
+        <AttendanceTable {...({ onDataLoaded: handleDataLoaded } as any)} />
       </section>
     </main>
   );

@@ -1,8 +1,9 @@
 "use client";
 
+import API from "../../services/api";
 import { useState } from "react";
 import Image from "next/image";
-import logo from "../../src/assets/logo-kemas.png";
+import logo from "../../assets/logo-kemas.png";
 import LoginForm from "../../components/forms/loginform";
 import RegisterForm from "../../components/forms/registerform";
 

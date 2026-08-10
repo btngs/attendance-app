@@ -1,26 +1,20 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import ActionMenu from './ActionMenu';
+import API from '../../services/api';
 
 // Interface untuk data yang akan datang dari database nanti
 export interface Employee {
-  id: string;
+  id: number | string;
   name: string;
   email: string;
   role: string;
-  phone?: string;
-  address?: string;
-  gender?: string;
-  division?: string;
-  position?: string;
-  education?: string;
-  emergencyContact?: string;
-  photo?: string;
 }
 
 interface EmployeeTableProps {
   data: Employee[];
   onEdit: (employee: Employee) => void;
   onDelete: (employee: Employee) => void;
+  onDataLoaded: (data: Employee[]) => void;
 }
 
 // Warna tema utama, disamakan dengan komponen lain di aplikasi
@@ -47,11 +41,37 @@ function getRoleStyle(role: string) {
   }
 }
 
-export default function EmployeeTable({ data, onEdit, onDelete }: EmployeeTableProps) {
+export default function EmployeeTable({ data, onEdit, onDelete, onDataLoaded }: EmployeeTableProps) {
+  const [loading, setLoading] = useState<boolean>(true);
+  const [errorMessage, setErrorMessage] = useState<string>("");
+
   // Baris yang sedang di-hover mouse, dan baris yang dropdown-nya sedang terbuka
   // (dropdown tetap terlihat walau mouse sudah geser, biar tidak tiba-tiba menghilang)
-  const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
-  const [openMenuRowId, setOpenMenuRowId] = useState<string | null>(null);
+  const [hoveredRowId, setHoveredRowId] = useState<string | number | null>(null);
+  const [openMenuRowId, setOpenMenuRowId] = useState<string | number | null>(null);
+
+  useEffect(() => {
+    fetchEmployeeData();
+  }, []);
+
+  const fetchEmployeeData = async () => {
+    try {
+      setLoading(true);
+      setErrorMessage("");
+
+      const response = await API.get('/users');
+      const fetchedData = response.data?.data || response.data || [];
+
+      onDataLoaded(fetchedData);
+    } catch (err: any) {
+      console.error("Error fetching data: ", err);
+      setErrorMessage(
+        err.response?.data?.message || "error fetching data from server"
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div style={{
@@ -77,8 +97,35 @@ export default function EmployeeTable({ data, onEdit, onDelete }: EmployeeTableP
 
         {/* Body Tabel */}
         <tbody>
-          {data.length === 0 ? (
-            // Jika data kosong, tampilkan pesan di dalam tabel
+          {loading ? (
+            <tr>
+              <td
+                colSpan={5}
+                style={{
+                  padding: '40px 20px',
+                  textAlign: 'center',
+                  color: '#999',
+                  fontSize: '14px'
+                }}
+              >
+                Memuat data karyawan...
+              </td>
+            </tr>
+          ) : errorMessage ? (
+            <tr>
+              <td
+                colSpan={5}
+                style={{
+                  padding: '40px 20px',
+                  textAlign: 'center',
+                  color: '#d32f2f',
+                  fontSize: '14px'
+                }}
+              >
+                {errorMessage}
+              </td>
+            </tr>
+          ) : data.length === 0 ? (
             <tr>
               <td
                 colSpan={5}
@@ -118,7 +165,6 @@ export default function EmployeeTable({ data, onEdit, onDelete }: EmployeeTableP
                         height: '36px',
                         borderRadius: '50%',
                         backgroundColor: '#e0e0e0',
-                        backgroundImage: employee.photo ? `url(${employee.photo})` : undefined,
                         backgroundSize: 'cover',
                         backgroundPosition: 'center',
                         flexShrink: 0
