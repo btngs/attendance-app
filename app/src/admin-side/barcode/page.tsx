@@ -1,31 +1,22 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Navbar from '../../components/Navbar';
-import {QRCodeCanvas } from 'qrcode.react'; // atau gunakan library lain
+import Sidebar from '../../components/Sidebar';
+import { QRCodeCanvas } from 'qrcode.react';
+import API from '../../services/api';
 
 export default function BarcodePage() {
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [countdown, setCountdown] = useState(360); // 6 menit dalam detik
+  const [countdown, setCountdown] = useState(360);
   const [barcodeValue, setBarcodeValue] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  // Update waktu setiap detik
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  // Countdown timer untuk refresh barcode
   useEffect(() => {
     const countdownTimer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
-          // Refresh barcode value saat countdown habis
           generateNewBarcode();
-          return 360; // Reset ke 6 menit
+          return 360; 
         }
         return prev - 1;
       });
@@ -34,57 +25,68 @@ export default function BarcodePage() {
     return () => clearInterval(countdownTimer);
   }, []);
 
-  // Generate barcode value baru
-  const generateNewBarcode = () => {
-    // Nanti ini akan diganti dengan API call untuk generate token baru
-    const timestamp = new Date().getTime();
-    const randomStr = Math.random().toString(36).substring(7);
-    const newValue = `ATTENDANCE_${timestamp}_${randomStr}`;
-    setBarcodeValue(newValue);
-    console.log('New barcode generated:', newValue);
+  const generateNewBarcode = async () => {
+    try {
+      setLoading(true);
+
+      const response = await API.post('/attendance/check-in');
+
+      const token = response.data.token || generateFallbackToken();
+      setBarcodeValue(token);
+      console.log('Generated barcode token:', token);
+    } catch (error) {
+      console.error('Error generating barcode:', error);
+
+      const fallbackToken = generateFallbackToken();
+      setBarcodeValue(fallbackToken);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Generate barcode pertama kali
+  const generateFallbackToken = () => {
+    const timestamp = new Date().getTime();
+    const randomStr = Math.random().toString(36).substring(7);
+    return `${timestamp}-${randomStr}`;
+  };
+
   useEffect(() => {
     generateNewBarcode();
   }, []);
 
-  // Format waktu
   const formatTime = (date: Date) => {
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
     const seconds = date.getSeconds().toString().padStart(2, '0');
     return `${hours}:${minutes}:${seconds} WIB`;
   };
-
+  
   const formatDate = (date: Date) => {
     const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
-                    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-    
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
     const dayName = days[date.getDay()];
     const day = date.getDate();
     const month = months[date.getMonth()];
     const year = date.getFullYear();
-    
-    return `${dayName} ${day} ${month} ${year}`;
+
+    return `${dayName}, ${day} ${month} ${year}`;
   };
 
-  // Format countdown (MM:SS)
   const formatCountdown = (seconds: number) => {
-    const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const minutes = Math.floor(seconds / 60).toString().padStart(2, '0');
     const secs = (seconds % 60).toString().padStart(2, '0');
-    return `${mins}:${secs}`;
+    return `${minutes}:${secs}`;
   };
 
   return (
-    <main style={{ backgroundColor: '#f5f0e8', minHeight: '100vh' }}>
-      <Navbar />
+    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#ffffff' }}>
+      <Sidebar />
       
-      <section style={{ 
-        padding: '40px 60px',
-        maxWidth: '1200px',
-        margin: '0 auto'
+      <main style={{ 
+        marginLeft: '260px', 
+        width: 'calc(100% - 260px)',
+        padding: '40px 60px'
       }}>
         <div style={{
           display: 'grid',
@@ -132,7 +134,7 @@ export default function BarcodePage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <InstructionItem 
                 number="1"
-                text="Buka web (nama web nya) di ponsel kamu"
+                text="Buka web Absensi kemas di ponsel kamu"
               />
               <InstructionItem 
                 number="2"
@@ -163,7 +165,20 @@ export default function BarcodePage() {
               boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
               marginBottom: '16px'
             }}>
-              {barcodeValue ? (
+              {loading ? (
+                <div style={{
+                  width: '320px',
+                  height: '320px',
+                  backgroundColor: '#f5f5f5',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#999',
+                  borderRadius: '8px'
+                }}>
+                  Generating...
+                </div>
+              ) : (
                 <QRCodeCanvas 
                   value={barcodeValue}
                   size={320}
@@ -175,18 +190,6 @@ export default function BarcodePage() {
                     height: 'auto'
                   }}
                 />
-              ) : (
-                <div style={{
-                  width: '320px',
-                  height: '320px',
-                  backgroundColor: '#f5f5f5',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#999'
-                }}>
-                  Loading QR Code...
-                </div>
               )}
             </div>
 
@@ -199,12 +202,10 @@ export default function BarcodePage() {
             </p>
           </div>
         </div>
-      </section>
-    </main>
+      </main>
+    </div>
   );
 }
-
-// Komponen untuk setiap item petunjuk
 interface InstructionItemProps {
   number: string;
   text: string;

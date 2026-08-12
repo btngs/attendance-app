@@ -8,7 +8,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Attendance App",
+  title: "Kemas Foundation - Admin",
   description: "Dashboard absensi dan scan QR code",
 };
 
