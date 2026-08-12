@@ -1,152 +1,370 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Navbar from '../../components/Navbar';
-import SearchBar from '../../components/recap/SearchBar';
-import AddButton from '../../components/karyawan/AddButton';
-import EmployeeTable, { Employee } from '../../components/karyawan/EmployeeTable';
-import AddEmployeeModal from '../../components/karyawan/AddEmployeeModal';
-import DeleteEmployeeModal from '../../components/karyawan/DeleteEmployeeModal';
-import { ToastContainer } from '../../components/ui/Toast';
-import { useToast } from '../../components/ui/useToast';
+import { useCallback, useMemo, useState } from "react";
+
+import Sidebar from "../../components/Sidebar";
+import SearchBar from "../../components/recap/SearchBar";
+import AddButton from "../../components/karyawan/AddButton";
+import EmployeeTable, {
+  Employee,
+} from "../../components/karyawan/EmployeeTable";
+import AddEmployeeModal from "../../components/karyawan/AddEmployeeModal";
+import DeleteEmployeeModal from "../../components/karyawan/DeleteEmployeeModal";
+import EmployeeDetailModal from "../../components/karyawan/EmployeeDetailModal";
+
+import { ToastContainer } from "../../components/ui/Toast";
+import { useToast } from "../../components/ui/useToast";
 
 export default function KaryawanPage() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  // ============================================================
+  // STATE
+  // ============================================================
 
-  // State untuk modal konfirmasi hapus
-  const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(null);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const { toasts, showToast, dismissToast } = useToast();
-
-  // ⚠️ Nanti data ini akan diisi dari database
   const [employeeData, setEmployeeData] = useState<Employee[]>([]);
 
-  const filteredEmployees = employeeData.filter((employee) =>
-    employee.name.toLowerCase().includes(searchQuery.toLowerCase())
+  // Add / Edit
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingEmployee, setEditingEmployee] =
+    useState<Employee | null>(null);
+
+  // Detail
+  const [detailEmployee, setDetailEmployee] =
+    useState<Employee | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] =
+    useState(false);
+
+  // Delete
+  const [deletingEmployee, setDeletingEmployee] =
+    useState<Employee | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] =
+    useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Toast
+  const { toasts, showToast, dismissToast } = useToast();
+
+  // ============================================================
+  // FILTER
+  // ============================================================
+
+  const filteredEmployees = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    if (!query) {
+      return employeeData;
+    }
+
+    return employeeData.filter((employee) =>
+      employee.name.toLowerCase().includes(query)
+    );
+  }, [employeeData, searchQuery]);
+
+  // ============================================================
+  // DATA
+  // ============================================================
+
+  /**
+   * Dipanggil EmployeeTable setelah berhasil mengambil
+   * data karyawan dari API.
+   *
+   * useCallback digunakan agar referensi function tetap stabil
+   * dan EmployeeTable tidak melakukan fetch berulang-ulang
+   * setiap kali parent melakukan re-render.
+   */
+  const handleEmployeesLoaded = useCallback(
+    (data: Employee[]) => {
+      setEmployeeData(data);
+    },
+    []
   );
 
-  function handleEmployeesLoaded(data: Employee[]) {
-    setEmployeeData(data);
-  }
+  // ============================================================
+  // ADD EMPLOYEE
+  // ============================================================
 
-  function handleOpenAddModal() {
-    setEditingEmployee(null); // pastikan mode "Tambah", bukan "Edit"
+  const handleOpenAddModal = useCallback(() => {
+    setEditingEmployee(null);
     setIsModalOpen(true);
-  }
+  }, []);
 
-  function handleOpenEditModal(employee: Employee) {
-    setEditingEmployee(employee); // isi modal dengan data karyawan yang dipilih
-    setIsModalOpen(true);
-  }
+  // ============================================================
+  // EDIT EMPLOYEE
+  // ============================================================
 
-  // Klik "Hapus" di ActionMenu -> buka modal konfirmasi, BELUM menghapus data
-  function handleRequestDelete(employee: Employee) {
-    setDeletingEmployee(employee);
-    setIsDeleteModalOpen(true);
-  }
+  const handleOpenEditModal = useCallback(
+    (employee: Employee) => {
+      setIsDetailModalOpen(false);
+      setDetailEmployee(null);
 
-  function handleCloseDeleteModal() {
-    if (isDeleting) return; // cegah tutup modal saat proses hapus berjalan
+      setEditingEmployee(employee);
+      setIsModalOpen(true);
+    },
+    []
+  );
+
+  // ============================================================
+  // DETAIL EMPLOYEE
+  // ============================================================
+
+  const handleOpenDetailModal = useCallback(
+    (employee: Employee) => {
+      setDetailEmployee(employee);
+      setIsDetailModalOpen(true);
+    },
+    []
+  );
+
+  const handleCloseDetailModal = useCallback(() => {
+    setIsDetailModalOpen(false);
+    setDetailEmployee(null);
+  }, []);
+
+  // ============================================================
+  // DELETE EMPLOYEE
+  // ============================================================
+
+  const handleRequestDelete = useCallback(
+    (employee: Employee) => {
+      setDeletingEmployee(employee);
+      setIsDeleteModalOpen(true);
+    },
+    []
+  );
+
+  const handleCloseDeleteModal = useCallback(() => {
+    if (isDeleting) {
+      return;
+    }
+
     setIsDeleteModalOpen(false);
     setDeletingEmployee(null);
-  }
+  }, [isDeleting]);
 
-  // Klik "Hapus" di dalam modal konfirmasi -> baru benar-benar menghapus data
-  async function handleConfirmDelete() {
-    if (!deletingEmployee) return;
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deletingEmployee) {
+      return;
+    }
 
     setIsDeleting(true);
+
     try {
-      // ⚠️ Nanti di sini tempat memanggil API/database untuk hapus data,
-      // contoh: await fetch(`/api/employees/${deletingEmployee.id}`, { method: 'DELETE' })
-      setEmployeeData((prev) => prev.filter((e) => e.id !== deletingEmployee.id));
+      /*
+       * Untuk sementara data dihapus dari state lokal.
+       *
+       * Jika backend DELETE sudah tersedia, API delete
+       * bisa ditambahkan di sini:
+       *
+       * await API.delete(`/users/${deletingEmployee.id}`);
+       */
+
+      setEmployeeData((previousEmployees) =>
+        previousEmployees.filter(
+          (employee) => employee.id !== deletingEmployee.id
+        )
+      );
 
       setIsDeleteModalOpen(false);
       setDeletingEmployee(null);
-      showToast('Karyawan berhasil dihapus.', 'success');
-    } catch {
-      showToast('Gagal menghapus karyawan. Coba lagi.', 'error');
+
+      showToast(
+        "Karyawan berhasil dihapus.",
+        "success"
+      );
+    } catch (error: unknown) {
+      console.error(
+        "Error deleting employee:",
+        error
+      );
+
+      showToast(
+        "Gagal menghapus karyawan. Silakan coba lagi.",
+        "error"
+      );
     } finally {
       setIsDeleting(false);
     }
-  }
+  }, [deletingEmployee, showToast]);
 
-  function handleSaveEmployee(formData: Omit<Employee, 'id'>) {
-    if (editingEmployee) {
-      // Mode Edit -> update baris yang sudah ada
-      setEmployeeData((prev) =>
-        prev.map((e) => (e.id === editingEmployee.id ? { ...formData, id: editingEmployee.id } : e))
-      );
-      showToast('Karyawan berhasil diperbarui.', 'success');
-    } else {
-      // Mode Tambah -> masukkan baris baru
-      const newEmployee: Employee = { ...formData, id: crypto.randomUUID() };
-      setEmployeeData((prev) => [...prev, newEmployee]);
-      showToast('Karyawan berhasil ditambahkan.', 'success');
-    }
+  // ============================================================
+  // SAVE EMPLOYEE
+  // ============================================================
+
+  const handleSaveEmployee = useCallback(
+    (formData: Omit<Employee, "id">) => {
+      if (editingEmployee) {
+        // UPDATE
+        setEmployeeData((previousEmployees) =>
+          previousEmployees.map((employee) =>
+            employee.id === editingEmployee.id
+              ? {
+                  ...formData,
+                  id: editingEmployee.id,
+                }
+              : employee
+          )
+        );
+
+        showToast(
+          "Data karyawan berhasil diperbarui.",
+          "success"
+        );
+      } else {
+        // CREATE
+        const newEmployee: Employee = {
+          ...formData,
+          id: crypto.randomUUID(),
+        };
+
+        setEmployeeData((previousEmployees) => [
+          ...previousEmployees,
+          newEmployee,
+        ]);
+
+        showToast(
+          "Karyawan berhasil ditambahkan.",
+          "success"
+        );
+      }
+
+      setIsModalOpen(false);
+      setEditingEmployee(null);
+    },
+    [editingEmployee, showToast]
+  );
+
+  // ============================================================
+  // CLOSE ADD / EDIT MODAL
+  // ============================================================
+
+  const handleCloseModal = useCallback(() => {
     setIsModalOpen(false);
     setEditingEmployee(null);
-  }
+  }, []);
 
-  function handleCloseModal() {
-    setIsModalOpen(false);
-    setEditingEmployee(null);
-  }
+  // ============================================================
+  // RENDER
+  // ============================================================
 
   return (
-    <main style={{ backgroundColor: '#ffffff', minHeight: '100vh' }}>
-      <Navbar />
+    <div
+      style={{
+        minHeight: "100vh",
+        backgroundColor: "#fff",
+      }}
+    >
+      <Sidebar />
 
-      <section style={{ 
-        padding: '10px 60px 40px 60px',
-        maxWidth: '1200px',
-        margin: '0 auto'
-      }}>
-        {/* Header dengan Search dan Tambah Anggota */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '30px',
-          gap: '16px',
-          flexWrap: 'wrap'
-        }}>
-          <SearchBar 
+      <main
+        style={{
+          marginLeft: "260px",
+          width: "calc(100% - 260px)",
+          minHeight: "100vh",
+          padding: "32px 40px",
+          boxSizing: "border-box",
+        }}
+      >
+        {/* ======================================================
+            HEADER
+        ====================================================== */}
+
+        <div
+          style={{
+            marginBottom: "24px",
+          }}
+        >
+          <h1
+            style={{
+              margin: 0,
+              fontSize: "22px",
+              fontWeight: 700,
+              color: "#333",
+            }}
+          >
+            Karyawan
+          </h1>
+
+          <p
+            style={{
+              margin: "6px 0 0",
+              fontSize: "14px",
+              color: "#888",
+            }}
+          >
+            Kelola data karyawan yang terdaftar.
+          </p>
+        </div>
+
+        {/* ======================================================
+            TOOLBAR
+        ====================================================== */}
+
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "16px",
+            marginBottom: "20px",
+            flexWrap: "wrap",
+          }}
+        >
+          <SearchBar
             value={searchQuery}
             onChange={setSearchQuery}
           />
-          
-          <AddButton onClick={handleOpenAddModal} />
+
+          <AddButton
+            onClick={handleOpenAddModal}
+          />
         </div>
 
-        <div style={{
-          marginBottom: '20px',
-          color: '#555',
-          fontSize: '14px'
-        }}>
-          Total karyawan: {employeeData.length}
-        </div>
+        {/* ======================================================
+            EMPLOYEE TABLE
+        ====================================================== */}
 
-        {/* Tabel Karyawan */}
         <EmployeeTable
           data={filteredEmployees}
           onEdit={handleOpenEditModal}
+          onDetail={handleOpenDetailModal}
           onDelete={handleRequestDelete}
           onDataLoaded={handleEmployeesLoaded}
         />
-      </section>
+      </main>
+
+      {/* ========================================================
+          ADD / EDIT MODAL
+      ======================================================== */}
 
       {isModalOpen && (
         <AddEmployeeModal
           onClose={handleCloseModal}
           onSave={handleSaveEmployee}
-          initialData={editingEmployee ?? undefined}
+          initialData={
+            editingEmployee ?? undefined
+          }
         />
       )}
+
+      {/* ========================================================
+          DETAIL MODAL
+      ======================================================== */}
+
+      <EmployeeDetailModal
+        employee={detailEmployee}
+        isOpen={isDetailModalOpen}
+        onClose={handleCloseDetailModal}
+        onEdit={() => {
+          if (detailEmployee) {
+            handleOpenEditModal(detailEmployee);
+          }
+        }}
+      />
+
+      {/* ========================================================
+          DELETE MODAL
+      ======================================================== */}
 
       <DeleteEmployeeModal
         employee={deletingEmployee}
@@ -156,7 +374,14 @@ export default function KaryawanPage() {
         onConfirm={handleConfirmDelete}
       />
 
-      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
-    </main>
+      {/* ========================================================
+          TOAST
+      ======================================================== */}
+
+      <ToastContainer
+        toasts={toasts}
+        onDismiss={dismissToast}
+      />
+    </div>
   );
 }
