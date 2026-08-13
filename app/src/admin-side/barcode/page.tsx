@@ -5,18 +5,108 @@ import Sidebar from '../../components/Sidebar';
 import { QRCodeCanvas } from 'qrcode.react';
 import API from '../../services/api';
 
+interface QRCodeData {
+  id: string;
+  token: string;
+  expiresAt: string;
+  isActive: boolean;
+}
+
 export default function BarcodePage() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [countdown, setCountdown] = useState(360);
+  const [qrCodeData, setQrCodeData] = useState<QRCodeData | null>(null);
   const [barcodeValue, setBarcodeValue] = useState('');
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Generate QR code baru dari backend
+  const generateNewQRCode = async () => {
+    try {
+      setLoading(true);
+      console.log('Generating new QR code...');
+      
+      // Panggil endpoint untuk generate QR code baru
+      const response = await API.post('/qr-code/create');
+      
+      console.log('QR Code response:', response.data);
+      
+      // Simpan data QR code
+      const qrData: QRCodeData = response.data;
+      setQrCodeData(qrData);
+      
+      // Token untuk QR code
+      setBarcodeValue(qrData.token);
+      
+      // Set countdown berdasarkan waktu expired dari backend
+      const expiresAt = new Date(qrData.expiresAt);
+      const now = new Date();
+      const secondsUntilExpiry = Math.floor((expiresAt.getTime() - now.getTime()) / 1000);
+      setCountdown(secondsUntilExpiry > 0 ? secondsUntilExpiry : 360);
+      
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+      
+      // Fallback jika API error
+      const fallbackToken = generateFallbackToken();
+      setBarcodeValue(fallbackToken);
+      setCountdown(360);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Ambil QR code aktif yang sudah ada
+  const fetchActiveQRCode = async () => {
+    try {
+      console.log('Fetching active QR code...');
+      const response = await API.get('/qr-code/active');
+      
+      console.log('Active QR code:', response.data);
+      
+      if (response.data) {
+        const qrData: QRCodeData = response.data;
+        setQrCodeData(qrData);
+        setBarcodeValue(qrData.token);
+        
+        // Hitung sisa waktu
+        const expiresAt = new Date(qrData.expiresAt);
+        const now = new Date();
+        const secondsUntilExpiry = Math.floor((expiresAt.getTime() - now.getTime()) / 1000);
+        
+        if (secondsUntilExpiry > 0) {
+          setCountdown(secondsUntilExpiry);
+          setLoading(false);
+          return true; // QR code masih valid
+        }
+      }
+      
+      return false; // QR code tidak ada atau sudah expired
+    } catch (error) {
+      console.error('Error fetching active QR code:', error);
+      return false;
+    }
+  };
+
+  // Fallback token generator
+  const generateFallbackToken = () => {
+    const timestamp = new Date().getTime();
+    const randomStr = Math.random().toString(36).substring(7);
+    return `ATTENDANCE-${timestamp}-${randomStr}`;
+  };
+
+  // Countdown timer untuk refresh QR code
   useEffect(() => {
     const countdownTimer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
-          generateNewBarcode();
-          return 360; 
+          // QR code expired, generate yang baru
+          generateNewQRCode();
+          return 360;
         }
         return prev - 1;
       });
@@ -25,33 +115,30 @@ export default function BarcodePage() {
     return () => clearInterval(countdownTimer);
   }, []);
 
-  const generateNewBarcode = async () => {
-    try {
-      setLoading(true);
-
-      const response = await API.post('/attendance/check-in');
-
-      const token = response.data.token || generateFallbackToken();
-      setBarcodeValue(token);
-      console.log('Generated barcode token:', token);
-    } catch (error) {
-      console.error('Error generating barcode:', error);
-
-      const fallbackToken = generateFallbackToken();
-      setBarcodeValue(fallbackToken);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const generateFallbackToken = () => {
-    const timestamp = new Date().getTime();
-    const randomStr = Math.random().toString(36).substring(7);
-    return `${timestamp}-${randomStr}`;
-  };
-
+  // Update waktu real-time
   useEffect(() => {
-    generateNewBarcode();
+    if (!mounted) return;
+    
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [mounted]);
+
+  // Load QR code pertama kali
+  useEffect(() => {
+    const loadQRCode = async () => {
+      // Coba ambil QR code aktif dulu
+      const hasActiveQR = await fetchActiveQRCode();
+      
+      // Jika tidak ada QR code aktif, generate yang baru
+      if (!hasActiveQR) {
+        await generateNewQRCode();
+      }
+    };
+    
+    loadQRCode();
   }, []);
 
   const formatTime = (date: Date) => {
@@ -118,8 +205,8 @@ export default function BarcodePage() {
               fontSize: '14px',
               color: '#999',
               marginBottom: '32px'
-            }}>
-              {formatTime(currentTime)} | {formatDate(currentTime)}
+            }} suppressHydrationWarning>
+              {mounted ? `${formatTime(currentTime)} | ${formatDate(currentTime)}` : 'Memuat...'}
             </p>
 
             <h3 style={{
@@ -197,8 +284,8 @@ export default function BarcodePage() {
               fontSize: '14px',
               color: '#999',
               textAlign: 'center'
-            }}>
-              Di perbarui dalam {formatCountdown(countdown)}
+            }} suppressHydrationWarning>
+              {mounted ? `Di perbarui dalam ${formatCountdown(countdown)}` : ''}
             </p>
           </div>
         </div>
@@ -206,6 +293,7 @@ export default function BarcodePage() {
     </div>
   );
 }
+
 interface InstructionItemProps {
   number: string;
   text: string;
