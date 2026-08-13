@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import API from '../services/api';
@@ -10,7 +10,9 @@ import {
   Barcode, 
   FileText, 
   Users, 
-  LogOut
+  LogOut,
+  Settings,
+  UserPen
 } from 'lucide-react';
 
 interface UserData {
@@ -25,6 +27,8 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<UserData | null>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // 1. Ambil data user dari localStorage (yang sudah disimpan LoginForm)
@@ -42,6 +46,17 @@ export default function Sidebar() {
       router.push('/src/auth/login');
     }
   }, [router]);
+
+  // Tutup dropdown saat klik di luar
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -110,59 +125,153 @@ export default function Sidebar() {
         />
       </div>
 
-      {/* Profile Section */}
-      <div style={{
-        backgroundColor: '#fff',
-        borderRadius: '12px',
-        padding: '16px',
-        marginBottom: '32px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px'
-      }}>
-        <div style={{
-          width: '48px',
-          height: '48px',
-          borderRadius: '50%',
-          backgroundColor: '#e8a838',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: '#fff',
-          fontSize: '20px',
-          fontWeight: '600'
-        }}>
-          {user?.avatar ? (
-            <img 
-              src={user.avatar} 
-              alt="Profile"
-              style={{
-                width: '100%',
-                height: '100%',
-                borderRadius: '50%',
-                objectFit: 'cover'
-              }}
-            />
-          ) : (
-            (user?.name ? user.name.charAt(0).toUpperCase() : 'A')
-          )}
-        </div>
-        <div>
+      {/* Profile Section - Clickable dengan Dropdown */}
+      <div style={{ marginBottom: '32px', position: 'relative' }} ref={dropdownRef}>
+        {/* Profile Card - Klik untuk buka dropdown */}
+        <div 
+          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          style={{
+            backgroundColor: '#fff',
+            borderRadius: '12px',
+            padding: '16px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            cursor: 'pointer',
+            transition: 'box-shadow 0.2s',
+            border: isDropdownOpen ? '2px solid #e8a838' : '2px solid transparent'
+          }}
+          onMouseEnter={(e) => {
+            if (!isDropdownOpen) {
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isDropdownOpen) {
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
+            }
+          }}
+        >
           <div style={{
-            fontSize: '14px',
+            width: '48px',
+            height: '48px',
+            borderRadius: '50%',
+            backgroundColor: '#e8a838',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#fff',
+            fontSize: '20px',
             fontWeight: '600',
-            color: '#333'
+            flexShrink: 0
           }}>
-            {user?.name || 'Admin'}
+            {user?.avatar ? (
+              <img 
+                src={user.avatar} 
+                alt="Profile"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  borderRadius: '50%',
+                  objectFit: 'cover'
+                }}
+              />
+            ) : (
+              (user?.name ? user.name.charAt(0).toUpperCase() : 'A')
+            )}
           </div>
-          <div style={{
-            fontSize: '12px',
-            color: '#999'
-          }}>
-            {user?.role || 'Admin'}
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            <div style={{
+              fontSize: '14px',
+              fontWeight: '600',
+              color: '#333',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            }}>
+              {user?.name || 'Admin'}
+            </div>
+            <div style={{
+              fontSize: '12px',
+              color: '#999',
+              textTransform: 'capitalize'
+            }}>
+              {user?.role || 'Admin'}
+            </div>
           </div>
         </div>
+
+        {/* Dropdown Menu */}
+        {isDropdownOpen && (
+          <div style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            marginTop: '8px',
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            padding: '8px 0',
+            zIndex: 1000,
+            border: '1px solid #f0f0f0'
+          }}>
+            {/* Edit Profile */}
+            <button
+              onClick={() => {
+                router.push('/src/admin-side/edit-profile');
+                setIsDropdownOpen(false);
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                width: '100%',
+                padding: '10px 16px',
+                border: 'none',
+                backgroundColor: 'transparent',
+                cursor: 'pointer',
+                fontSize: '14px',
+                color: '#333',
+                textAlign: 'left',
+                transition: 'background-color 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef3e2'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              <UserPen size={18} color="#e8a838" />
+              <span>Edit profile</span>
+            </button>
+
+            {/* Divider */}
+            <div style={{ borderTop: '1px solid #f0f0f0', margin: '8px 0' }}></div>
+
+            {/* Logout */}
+            <button
+              onClick={handleLogout}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                width: '100%',
+                padding: '10px 16px',
+                border: 'none',
+                backgroundColor: 'transparent',
+                cursor: 'pointer',
+                fontSize: '14px',
+                color: '#f44336',
+                textAlign: 'left',
+                transition: 'background-color 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fde8e8'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              <LogOut size={18} />
+              <span>Keluar</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Menu Navigation */}
@@ -208,33 +317,6 @@ export default function Sidebar() {
           );
         })}
       </nav>
-
-      {/* Logout Button */}
-      <div style={{ marginTop: 'auto' }}>
-        <button
-          onClick={handleLogout}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            width: '100%',
-            padding: '12px 16px',
-            border: 'none',
-            backgroundColor: 'transparent',
-            color: '#f44336',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: '500',
-            transition: 'all 0.2s'
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fde8e8'}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-        >
-          <LogOut size={20} />
-          <span>Keluar</span>
-        </button>
-      </div>
     </aside>
   );
 }
