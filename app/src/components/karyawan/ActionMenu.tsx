@@ -4,20 +4,21 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 interface ActionMenuProps {
   onEdit: () => void;
+  onDetail: () => void;
   onDelete: () => void;
-  /** Dipanggil setiap kali dropdown terbuka/tertutup, dipakai parent untuk menjaga baris tetap ter-highlight saat menu terbuka */
   onOpenChange?: (isOpen: boolean) => void;
 }
 
+type HoveredItem = "edit" | "detail" | "delete" | null;
+
 export default function ActionMenu({
   onEdit,
+  onDetail,
   onDelete,
   onOpenChange,
 }: ActionMenuProps) {
   const [isOpen, setIsOpenState] = useState(false);
-  const [hoveredItem, setHoveredItem] = useState<"edit" | "delete" | null>(
-    null,
-  );
+  const [hoveredItem, setHoveredItem] = useState<HoveredItem>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const setIsOpen = useCallback(
@@ -28,7 +29,6 @@ export default function ActionMenu({
     [onOpenChange],
   );
 
-  // Tutup menu kalau klik di luar area menu
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -73,21 +73,17 @@ export default function ActionMenu({
             border: "1px solid #f0ece3",
             overflow: "hidden",
             zIndex: 20,
-            minWidth: "130px",
+            minWidth: "140px",
           }}
         >
           <button
             type="button"
-            onClick={() => {
-              setIsOpen(false);
-              onEdit();
-            }}
+            onClick={() => { setIsOpen(false); onEdit(); }}
             onMouseEnter={() => setHoveredItem("edit")}
             onMouseLeave={() => setHoveredItem(null)}
             style={{
               ...menuItemStyle,
-              backgroundColor:
-                hoveredItem === "edit" ? "#FFF3D6" : "transparent",
+              backgroundColor: hoveredItem === "edit" ? "#FFF3D6" : "transparent",
               color: hoveredItem === "edit" ? "#F5A623" : "#333",
             }}
           >
@@ -95,16 +91,25 @@ export default function ActionMenu({
           </button>
           <button
             type="button"
-            onClick={() => {
-              setIsOpen(false);
-              onDelete();
+            onClick={() => { setIsOpen(false); onDetail(); }}
+            onMouseEnter={() => setHoveredItem("detail")}
+            onMouseLeave={() => setHoveredItem(null)}
+            style={{
+              ...menuItemStyle,
+              backgroundColor: hoveredItem === "detail" ? "#FFF3D6" : "transparent",
+              color: hoveredItem === "detail" ? "#F5A623" : "#333",
             }}
+          >
+            Detail
+          </button>
+          <button
+            type="button"
+            onClick={() => { setIsOpen(false); onDelete(); }}
             onMouseEnter={() => setHoveredItem("delete")}
             onMouseLeave={() => setHoveredItem(null)}
             style={{
               ...menuItemStyle,
-              backgroundColor:
-                hoveredItem === "delete" ? "#fef2f2" : "transparent",
+              backgroundColor: hoveredItem === "delete" ? "#fef2f2" : "transparent",
               color: "#c62828",
             }}
           >

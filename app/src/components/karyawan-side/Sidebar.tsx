@@ -68,7 +68,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           }}
         >
           <Link
-            href="/karyawan-side/absensi"
+            href="/src/karyawan-side/absensi"
             onClick={onClose}
             style={{
               textDecoration: 'none',
@@ -80,7 +80,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             Beranda
           </Link>
           <Link
-            href="/karyawan-side/riwayat-absensi"
+            href="/src/karyawan-side/riwayat-absensi"
             onClick={onClose}
             style={{
               textDecoration: 'none',

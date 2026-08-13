@@ -1,6 +1,5 @@
 "use client";
 
-import API from "../../services/api";
 import { useState } from "react";
 import Image from "next/image";
 import logo from "../../assets/logo-kemas.png";

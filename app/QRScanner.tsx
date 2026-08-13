@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Html5QrcodeScanner } from "html5-qrcode";
 
-export function useQRScanner(elementId: string = "reader") {
+export function useQRScanner(elementId: string = "reader", onScan?: (result: string) => void) {
   const [scanResult, setScanResult] = useState<string>("");
 
   useEffect(() => {
@@ -22,6 +22,7 @@ export function useQRScanner(elementId: string = "reader") {
         (result) => {
           scanner.clear().catch((err) => console.error(err));
           setScanResult(result);
+          onScan?.(result);
         },
         () => {} // silent error per frame
       );
@@ -30,7 +31,7 @@ export function useQRScanner(elementId: string = "reader") {
         scanner.clear().catch((err) => console.error(err));
       };
     }
-  }, [scanResult, elementId]);
+  }, [scanResult, elementId, onScan]);
 
   const resetScan = () => setScanResult("");
 
