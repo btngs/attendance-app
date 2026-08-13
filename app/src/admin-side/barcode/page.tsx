@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Sidebar from '../../components/Sidebar';
 import { QRCodeCanvas } from 'qrcode.react';
 import API from '../../services/api';
@@ -11,21 +11,13 @@ export default function BarcodePage() {
   const [barcodeValue, setBarcodeValue] = useState('');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const countdownTimer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          generateNewBarcode();
-          return 360; 
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(countdownTimer);
+  const generateFallbackToken = useCallback(() => {
+    const timestamp = new Date().getTime();
+    const randomStr = Math.random().toString(36).substring(7);
+    return `${timestamp}-${randomStr}`;
   }, []);
 
-  const generateNewBarcode = async () => {
+  const generateNewBarcode = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -42,17 +34,38 @@ export default function BarcodePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [generateFallbackToken]);
 
-  const generateFallbackToken = () => {
-    const timestamp = new Date().getTime();
-    const randomStr = Math.random().toString(36).substring(7);
-    return `${timestamp}-${randomStr}`;
-  };
+  // Live clock, ticks every second
+  useEffect(() => {
+    const clockTimer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(clockTimer);
+  }, []);
 
   useEffect(() => {
-    generateNewBarcode();
-  }, []);
+    const timer = window.setTimeout(() => {
+      void generateNewBarcode();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [generateNewBarcode]);
+
+  useEffect(() => {
+    const countdownTimer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          void generateNewBarcode();
+          return 360;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(countdownTimer);
+  }, [generateNewBarcode]);
 
   const formatTime = (date: Date) => {
     const hours = date.getHours().toString().padStart(2, '0');

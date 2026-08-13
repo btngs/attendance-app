@@ -1,113 +1,163 @@
-import { useState,  useRef, useEffect } from "react";
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { ChevronDown, SlidersHorizontal } from "lucide-react";
+
+import {
+  SORT_OPTIONS,
+} from "../../constants/rekapitulasi";
+
+import type {
+  SortOption,
+} from "../../types/rekapitulasi";
 
 interface SortButtonProps {
-  selectedSort: string;
-  onSortChange: (sort: string) => void;
+  selectedSort: SortOption;
+  onSortChange: (value: SortOption) => void;
 }
 
-const sortOptions = [
-    { value: 'terbaru', label: 'Terbaru' },
-    { value: '7hari', label: '7 Hari Terakhir' },
-    {value: '1bulan', label: '1 Bulan Terakhir'},
-    {value: '3bulan', label: '3 Bulan Terakhir'}
-];
+export default function SortButton({
+  selectedSort,
+  onSortChange,
+}: SortButtonProps) {
+  const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
-export default function SortButton({ selectedSort, onSortChange }: SortButtonProps) {
-    const [isOpen, setIsOpen] = useState(false);
-    const dropdownRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-            }
-        };
-
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
-
-    const getCurrentLabel = () => {
-        const option = sortOptions.find(opt => opt.value === selectedSort);
-        return option ? option.label : 'Sort';
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (
+        wrapperRef.current &&
+        !wrapperRef.current.contains(
+          event.target as Node,
+        )
+      ) {
+        setOpen(false);
+      }
     };
 
-    return (
-        <div style={{ position: 'relative' }} ref={dropdownRef}>
+    document.addEventListener(
+      "mousedown",
+      handleOutsideClick,
+    );
+
+    return () => {
+      document.removeEventListener(
+        "mousedown",
+        handleOutsideClick,
+      );
+    };
+  }, []);
+
+  return (
+    <div
+      ref={wrapperRef}
+      style={{
+        position: "relative",
+      }}
+    >
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        type="button"
+        onClick={() => setOpen((current) => !current)}
         style={{
-          padding: '12px 20px',
-          border: '1px solid #ddd',
-          borderRadius: '8px',
-          backgroundColor: 'white',
-          cursor: 'pointer',
-          fontSize: '14px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          whiteSpace: 'nowrap'
+          height: "36px",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "7px",
+          padding: "0 12px",
+          border: "1px solid #dddddd",
+          borderRadius: "6px",
+          backgroundColor: "#ffffff",
+          color: "#333333",
+          fontSize: "11px",
+          fontWeight: 500,
+          cursor: "pointer",
         }}
       >
+        <SlidersHorizontal
+          size={13}
+          strokeWidth={1.8}
+        />
+
         <span>Sort</span>
+
+        <ChevronDown
+          size={12}
+          style={{
+            transform: open
+              ? "rotate(180deg)"
+              : "rotate(0)",
+            transition: "transform 150ms ease",
+          }}
+        />
       </button>
 
-      {isOpen && (
-        <div style={{
-          position: 'absolute',
-          top: '100%',
-          right: 0,
-          marginTop: '8px',
-          backgroundColor: 'white',
-          borderRadius: '12px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-          padding: '20px',
-          minWidth: '220px',
-          zIndex: 1000
-        }}>
-          <h3 style={{
-            margin: '0 0 16px 0',
-            fontSize: '16px',
-            fontWeight: '600',
-            color: '#333'
-          }}>
+      {open && (
+        <div
+          style={{
+            position: "absolute",
+            top: "calc(100% + 8px)",
+            right: 0,
+            width: "175px",
+            padding: "12px",
+            backgroundColor: "#ffffff",
+            border: "1px solid #eeeeee",
+            borderRadius: "8px",
+            boxShadow:
+              "0 8px 24px rgba(0, 0, 0, 0.10)",
+            zIndex: 100,
+          }}
+        >
+          <div
+            style={{
+              marginBottom: "10px",
+              color: "#777777",
+              fontSize: "10px",
+              fontWeight: 500,
+            }}
+          >
             Sort by
-          </h3>
-          {sortOptions.map((option) => (
-            <label
-              key={option.value}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: '10px 0',
-                cursor: 'pointer',
-                fontSize: '14px',
-                color: '#555'
-              }}
-            >
-              <input
-                type="radio"
-                name="sort"
-                value={option.value}
-                checked={selectedSort === option.value}
-                onChange={(e) => {
-                  onSortChange(e.target.value);
-                  setIsOpen(false);
-                }}
+          </div>
+
+          {SORT_OPTIONS.map((option) => {
+            const checked =
+              selectedSort === option.value;
+
+            return (
+              <label
+                key={option.value}
                 style={{
-                  width: '18px',
-                  height: '18px',
-                  accentColor: '#e8a838',
-                  cursor: 'pointer'
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "5px 0",
+                  cursor: "pointer",
+                  color: "#555555",
+                  fontSize: "10px",
                 }}
-              />
-              {option.label}
-            </label>
-          ))}
+              >
+                <input
+                  type="radio"
+                  name="attendance-sort"
+                  value={option.value}
+                  checked={checked}
+                  onChange={() => {
+                    onSortChange(option.value);
+                    setOpen(false);
+                  }}
+                  style={{
+                    width: "12px",
+                    height: "12px",
+                    accentColor: "#e8a838",
+                    margin: 0,
+                  }}
+                />
+
+                <span>{option.label}</span>
+              </label>
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
-

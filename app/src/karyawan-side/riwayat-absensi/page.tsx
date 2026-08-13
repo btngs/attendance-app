@@ -1,9 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ToastContainer } from '../../components/ui/Toast';
 import { useToast } from '../../components/ui/useToast';
+import API from '../../services/api';
+import {
+  belongsToUser,
+  extractAttendanceArray,
+  formatMonthYear,
+  formatShortDate,
+  getRecordCheckIn,
+  getRecordCheckOut,
+  getRecordDate,
+  normalizeSimpleStatus,
+} from '../../utils/attendance';
+
+const ATTENDANCE_ENDPOINT = '/attendance';
 
 export interface AttendanceRecord {
   id: string;
@@ -14,22 +27,88 @@ export interface AttendanceRecord {
   checkOut: string;
 }
 
-// Data Dummy
-const INITIAL_RECORDS: AttendanceRecord[] = [
-  { id: '1', date: 'Senin, 3 Agustus', monthYear: 'Agustus 2026', status: 'hadir', checkIn: '08:33', checkOut: '15:44' },
-  { id: '2', date: 'Senin, 2 Agustus', monthYear: 'Agustus 2026', status: 'hadir', checkIn: '08:33', checkOut: '15:44' },
-  { id: '3', date: 'Senin, 2 Juli', monthYear: 'Juli 2026', status: 'izin', checkIn: '00:00', checkOut: '00:00' },
-  { id: '4', date: 'Senin, 2 Juli', monthYear: 'Juli 2026', status: 'sakit', checkIn: '00:00', checkOut: '00:00' },
-  { id: '5', date: 'Senin, 2 Juli', monthYear: 'Juli 2026', status: 'tidak-hadir', checkIn: '00:00', checkOut: '00:00' }
-];
+interface StoredUser {
+  id: string;
+  name: string;
+}
+
+function getStoredUser(): StoredUser | null {
+  if (typeof window === 'undefined') return null;
+
+  const raw = localStorage.getItem('user');
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw) as StoredUser;
+  } catch {
+    return null;
+  }
+}
 
 type FilterOption = 'semua' | 'hadir' | 'sakit' | 'izin' | 'tidak-hadir';
 
 export default function RiwayatAbsensiPage() {
   const router = useRouter();
   const [selectedFilter, setSelectedFilter] = useState<FilterOption>('semua');
-  const [records] = useState<AttendanceRecord[]>(INITIAL_RECORDS);
-  const { toasts, dismissToast } = useToast();
+  const [records, setRecords] = useState<AttendanceRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState('');
+  const { toasts, showToast, dismissToast } = useToast();
+
+  /* =======================================================
+     FETCH THIS USER'S ATTENDANCE HISTORY
+     ======================================================= */
+
+  const fetchHistory = useCallback(async () => {
+    const user = getStoredUser();
+
+    if (!user) {
+      setErrorMessage('Sesi tidak ditemukan. Silakan login kembali.');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setErrorMessage('');
+
+      const response = await API.get(ATTENDANCE_ENDPOINT);
+      const rawRecords = extractAttendanceArray(response.data);
+
+      const myRecords = rawRecords.filter((record) =>
+        belongsToUser(record, user.id, user.name),
+      );
+
+      const mapped: AttendanceRecord[] = myRecords.map((record, index) => {
+        const rawDate = getRecordDate(record);
+
+        return {
+          id: String(record.id ?? record._id ?? index),
+          date: formatShortDate(rawDate),
+          monthYear: formatMonthYear(rawDate),
+          status: normalizeSimpleStatus(record.status ?? record.attendance_status),
+          checkIn: getRecordCheckIn(record) || '00:00',
+          checkOut: getRecordCheckOut(record) || '00:00',
+        };
+      });
+
+      setRecords(mapped);
+    } catch (error) {
+      console.error('Gagal mengambil riwayat absensi:', error);
+      setErrorMessage('Riwayat absensi gagal dimuat. Silakan coba lagi.');
+      showToast('Gagal memuat riwayat absensi.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [showToast]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void fetchHistory();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [fetchHistory]);
 
   // Filter Data
   const filteredRecords = records.filter((item) => {
@@ -92,11 +171,11 @@ export default function RiwayatAbsensiPage() {
   return (
     <div style={{ backgroundColor: '#ffffff', minHeight: '100vh', padding: '20px', display: 'flex', justifyContent: 'center' }}>
       <div style={{ width: '100%', maxWidth: '420px' }}>
-        
+
         {/* Header Arrow Back & Title */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
           <button
-            onClick={() => router.push('/')} // Mengarah kembali ke beranda
+            onClick={() => router.push('/src/karyawan-side/absensi')}
             style={{
               background: 'none',
               border: 'none',
@@ -162,6 +241,42 @@ export default function RiwayatAbsensiPage() {
         </div>
 
         {/* Attendance List */}
+        {loading ? (
+          <p style={{ textAlign: 'center', color: '#9ca3af', fontSize: '13px', padding: '20px 0' }}>
+            Memuat riwayat absensi...
+          </p>
+        ) : errorMessage ? (
+          <div
+            style={{
+              padding: '14px 16px',
+              borderRadius: '10px',
+              border: '1px solid #fecaca',
+              backgroundColor: '#fef2f2',
+              color: '#b91c1c',
+              fontSize: '13px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+            }}
+          >
+            <span>{errorMessage}</span>
+            <button
+              type="button"
+              onClick={() => void fetchHistory()}
+              style={{
+                border: 'none',
+                backgroundColor: 'transparent',
+                color: '#b91c1c',
+                fontWeight: 600,
+                fontSize: '12px',
+                cursor: 'pointer',
+              }}
+            >
+              Coba lagi
+            </button>
+          </div>
+        ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {Object.keys(groupedRecords).length === 0 ? (
             <p style={{ textAlign: 'center', color: '#9ca3af', fontSize: '13px', padding: '20px 0' }}>
@@ -249,6 +364,7 @@ export default function RiwayatAbsensiPage() {
 ))
 )}
 </div>
+)}
 </div>
 <ToastContainer toasts={toasts} onDismiss={dismissToast} />
 </div>

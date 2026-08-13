@@ -64,13 +64,26 @@ export default function LoginForm({ role, onRegisterClick }: LoginFormProps) {
       if (role === "admin" || user?.role === "admin") {
         router.push("/src/admin-side/dashboard");
       } else {
-        router.push("/src/karyawan/dashboard");
+        router.push("/src/karyawan-side/absensi");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Login Error:", err);
-      setErrorMessage(
-        err.response?.data?.message || "Login gagal. Silakan periksa kembali kredensial Anda."
-      );
+
+      let message = "Login gagal. Silakan periksa kembali kredensial Anda.";
+
+      if (
+        err &&
+        typeof err === "object" &&
+        "response" in err
+      ) {
+        const axiosError = err as {
+          response?: { data?: { message?: string } };
+        };
+
+        message = axiosError.response?.data?.message ?? message;
+      }
+
+      setErrorMessage(message);
     } finally {
       setLoading(false);
     }

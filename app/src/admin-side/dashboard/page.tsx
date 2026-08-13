@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import API from '../../services/api';
 import Sidebar from '../../components/Sidebar';
 import { 
@@ -42,20 +42,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState('');
 
-  useEffect(() => {
-    const today = new Date();
-    const options: Intl.DateTimeFormatOptions = { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    };
-    setCurrentDate(today.toLocaleDateString('id-ID', options));
-    
-    fetchAttendanceData();
-  }, []);
-
-  const fetchAttendanceData = async () => {
+  const fetchAttendanceData = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -100,7 +87,26 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const today = new Date();
+      const options: Intl.DateTimeFormatOptions = {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      };
+      setCurrentDate(today.toLocaleDateString('id-ID', options));
+
+      void fetchAttendanceData();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [fetchAttendanceData]);
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#fff' }}>

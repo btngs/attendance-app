@@ -1,37 +1,71 @@
+import type { StatusKehadiran } from "../../types/rekapitulasi";
+
 interface StatusBadgeProps {
-  status: string;
+  status: StatusKehadiran;
 }
 
-export default function StatusBadge({ status }: StatusBadgeProps) {
-  const getStatusStyle = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'hadir':
-        return { backgroundColor: '#e8f5e9', color: '#2e7d32' };
-      case 'tidak hadir':
-        return { backgroundColor: '#fde8e8', color: '#c62828' };
-      case 'terlambat':
-        return { backgroundColor: '#fff9e6', color: '#f59e0b' };
-      case 'izin':
-        return { backgroundColor: '#e3f2fd', color: '#1565c0' };
-      case 'wfh':
-        return { backgroundColor: '#e3f2fd', color: '#1565c0' };
-      case 'sakit':
-        return { backgroundColor: '#e3f2fd', color: '#1565c0' };
-      default:
-        return { backgroundColor: '#f5f5f5', color: '#666' };
-    }
-  };
+const STATUS_STYLES: Record<
+  StatusKehadiran,
+  {
+    background: string;
+    color: string;
+  }
+> = {
+  Hadir: {
+    background: "#dcfce7",
+    color: "#15803d",
+  },
+
+  "Tidak hadir": {
+    background: "#ffe4e6",
+    color: "#e11d48",
+  },
+
+  Terlambat: {
+    background: "#fef3c7",
+    color: "#d97706",
+  },
+
+  Izin: {
+    background: "#e0f2fe",
+    color: "#0284c7",
+  },
+
+  WFH: {
+    background: "#e0f2fe",
+    color: "#0284c7",
+  },
+
+  Sakit: {
+    background: "#e0f2fe",
+    color: "#0284c7",
+  },
+};
+
+export default function StatusBadge({
+  status,
+}: StatusBadgeProps) {
+  const style =
+    STATUS_STYLES[status];
 
   return (
-    <span style={{
-      ...getStatusStyle(status),
-      padding: '6px 16px',
-      borderRadius: '20px',
-      fontSize: '13px',
-      fontWeight: '500',
-      display: 'inline-block'
-    }}>
-      {status.charAt(0).toUpperCase() + status.slice(1)}
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "4px 9px",
+        borderRadius: "999px",
+        backgroundColor:
+          style.background,
+        color: style.color,
+        fontSize: "9px",
+        lineHeight: 1.3,
+        fontWeight: 600,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {status}
     </span>
   );
 }

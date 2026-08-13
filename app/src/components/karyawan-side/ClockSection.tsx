@@ -87,7 +87,7 @@ export default function ClockSectionA({ isCheckIn, onToggleAbsen, isLoading }: C
           gap: '8px',
         }}
       >
-        <span></span> {isLoading ? 'Memproses . . .' : isCheckIn ? 'MASUK' : 'KELUAR'}
+        <span></span> {isLoading ? 'Memproses . . .' : isCheckIn ? 'KELUAR' : 'MASUK'}
       </button>
     </div>
   );

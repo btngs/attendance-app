@@ -1,201 +1,295 @@
 "use client";
 
+import type { CSSProperties } from "react";
+import type { RiwayatKehadiran } from "../../types/rekapitulasi";
+
 import StatusBadge from "./StatusBadge";
 
-export interface AttendanceRecord {
-  id: number | string;
-  date: string;
-  employeeName: string;
-  checkIn: string | null;
-  checkOut: string | null;
-  lateMinutes: number | null;
-  status: string;
-}
-
 interface AttendanceTableProps {
-  data: AttendanceRecord[];
+  data: RiwayatKehadiran[];
   loading?: boolean;
-  error?: string | null;
 }
 
-const BORDER = "#f0ece3";
-const HEADER_BG = "#fef3e2";
+const BORDER_COLOR = "#ebe9e2";
+const HEADER_BACKGROUND = "#fef3e2";
 const HEADER_COLOR = "#e8a838";
+const TEXT_COLOR = "#333333";
+const MUTED_COLOR = "#999999";
 
 export default function AttendanceTable({
   data,
   loading = false,
-  error = null,
 }: AttendanceTableProps) {
   return (
     <div
       style={{
-        backgroundColor: "#ffffff",
-        borderRadius: "12px",
-        overflow: "hidden",
-        border: `1px solid ${BORDER}`,
         width: "100%",
+        overflowX: "auto",
+        border: `1px solid ${BORDER_COLOR}`,
+        borderRadius: "8px",
+        backgroundColor: "#ffffff",
       }}
     >
-      <div
+      <table
         style={{
           width: "100%",
-          overflowX: "auto",
+          minWidth: "780px",
+          borderCollapse: "collapse",
+          tableLayout: "fixed",
         }}
       >
-        <table
-          style={{
-            width: "100%",
-            minWidth: "800px",
-            borderCollapse: "collapse",
-          }}
-        >
-          <thead>
-            <tr style={{ backgroundColor: HEADER_BG }}>
-              <th style={headerStyle}>Tanggal</th>
-              <th style={headerStyle}>Nama Karyawan</th>
-              <th style={headerStyle}>Waktu Masuk</th>
-              <th style={headerStyle}>Waktu Keluar</th>
-              <th style={headerStyle}>Keterlambatan</th>
-              <th style={headerStyle}>Status Kehadiran</th>
-            </tr>
-          </thead>
+        <thead>
+          <tr
+            style={{
+              backgroundColor: HEADER_BACKGROUND,
+            }}
+          >
+            <th
+              style={{
+                ...headerStyle,
+                width: "14%",
+              }}
+            >
+              Tanggal
+            </th>
 
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={6} style={emptyStyle}>
-                  Memuat data absensi...
-                </td>
-              </tr>
-            ) : error ? (
-              <tr>
-                <td
-                  colSpan={6}
-                  style={{
-                    ...emptyStyle,
-                    color: "#d32f2f",
-                  }}
-                >
-                  {error}
-                </td>
-              </tr>
-            ) : data.length === 0 ? (
-              <tr>
-                <td colSpan={6} style={emptyStyle}>
-                  Belum ada data absensi.
-                </td>
-              </tr>
-            ) : (
-              data.map((row, index) => {
-                const hasLate =
-                  typeof row.lateMinutes === "number" &&
-                  row.lateMinutes > 0;
+            <th
+              style={{
+                ...headerStyle,
+                width: "24%",
+              }}
+            >
+              Nama Karyawan
+            </th>
 
-                return (
-                  <tr
-                    key={`${row.id}-${index}`}
-                    style={{
-                      borderBottom: `1px solid ${BORDER}`,
-                    }}
-                  >
-                    {/* Tanggal */}
-                    <td style={cellStyle}>
-                      {row.date || "-"}
-                    </td>
+            <th
+              style={{
+                ...headerStyle,
+                width: "14%",
+              }}
+            >
+              Waktu Masuk
+            </th>
 
-                    {/* Nama Karyawan */}
-                    <td style={cellStyle}>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "10px",
-                          minWidth: "180px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: "32px",
-                            height: "32px",
-                            borderRadius: "50%",
-                            backgroundColor: "#e0e0e0",
-                            flexShrink: 0,
-                          }}
-                        />
+            <th
+              style={{
+                ...headerStyle,
+                width: "14%",
+              }}
+            >
+              Waktu Keluar
+            </th>
 
-                        <span
-                          style={{
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                        >
-                          {row.employeeName || "Karyawan"}
-                        </span>
-                      </div>
-                    </td>
+            <th
+              style={{
+                ...headerStyle,
+                width: "16%",
+              }}
+            >
+              Keterlambatan
+            </th>
 
-                    {/* Waktu Masuk */}
-                    <td style={cellStyle}>
-                      {row.checkIn || "-"}
-                    </td>
+            <th
+              style={{
+                ...headerStyle,
+                width: "18%",
+              }}
+            >
+              Status Kehadiran
+            </th>
+          </tr>
+        </thead>
 
-                    {/* Waktu Keluar */}
-                    <td style={cellStyle}>
-                      {row.checkOut || "-"}
-                    </td>
-
-                    {/* Keterlambatan */}
-                    <td
-                      style={{
-                        ...cellStyle,
-                        color: hasLate ? "#d32f2f" : "#999999",
-                        fontWeight: hasLate ? 600 : 400,
-                      }}
-                    >
-                      {hasLate
-                        ? `${row.lateMinutes} mnt`
-                        : "-"}
-                    </td>
-
-                    {/* Status */}
-                    <td style={cellStyle}>
-                      <StatusBadge
-                        status={row.status || "Belum ada status"}
-                      />
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+        <tbody>
+          {loading ? (
+            <LoadingRows />
+          ) : data.length === 0 ? (
+            <EmptyRow />
+          ) : (
+            data.map((record) => (
+              <AttendanceRow key={record.id} record={record} />
+            ))
+          )}
+        </tbody>
+      </table>
     </div>
   );
 }
 
-const headerStyle: React.CSSProperties = {
-  padding: "14px 16px",
+/* =========================================================
+   ATTENDANCE ROW
+========================================================= */
+
+interface AttendanceRowProps {
+  record: RiwayatKehadiran;
+}
+
+function AttendanceRow({ record }: AttendanceRowProps) {
+  const hasLate =
+    record.keterlambatanMenit !== null && record.keterlambatanMenit > 0;
+
+  return (
+    <tr
+      style={{
+        borderBottom: `1px solid ${BORDER_COLOR}`,
+      }}
+    >
+      {/* TANGGAL */}
+
+      <td style={cellStyle}>{record.tanggal || "-"}</td>
+
+      {/* NAMA KARYAWAN */}
+
+      <td style={cellStyle}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "9px",
+            minWidth: 0,
+          }}
+        >
+          <EmployeeAvatar name={record.namaKaryawan} />
+
+          <span
+            style={{
+              color: TEXT_COLOR,
+              fontSize: "11px",
+              fontWeight: 500,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {record.namaKaryawan}
+          </span>
+        </div>
+      </td>
+
+      {/* WAKTU MASUK */}
+
+      <td style={cellStyle}>{record.waktuMasuk || "-"}</td>
+
+      {/* WAKTU KELUAR */}
+
+      <td style={cellStyle}>{record.waktuKeluar || "-"}</td>
+
+      {/* KETERLAMBATAN */}
+
+      <td
+        style={{
+          ...cellStyle,
+          color: hasLate ? "#dc2626" : MUTED_COLOR,
+          fontWeight: hasLate ? 600 : 400,
+        }}
+      >
+        {hasLate ? `${record.keterlambatanMenit} menit` : "-"}
+      </td>
+
+      {/* STATUS */}
+
+      <td style={cellStyle}>
+        <StatusBadge status={record.status} />
+      </td>
+    </tr>
+  );
+}
+
+/* =========================================================
+   EMPLOYEE AVATAR
+========================================================= */
+
+interface EmployeeAvatarProps {
+  name: string;
+}
+
+function EmployeeAvatar({ name }: EmployeeAvatarProps) {
+  const initial = name?.trim()?.charAt(0)?.toUpperCase() || "K";
+
+  return (
+    <div
+      aria-hidden="true"
+      style={{
+        width: "28px",
+        height: "28px",
+        minWidth: "28px",
+        borderRadius: "50%",
+        backgroundColor: "#f1f1f1",
+        color: "#777777",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: "10px",
+        fontWeight: 600,
+      }}
+    >
+      {initial}
+    </div>
+  );
+}
+
+/* =========================================================
+   LOADING
+========================================================= */
+
+function LoadingRows() {
+  return (
+    <tr>
+      <td
+        colSpan={6}
+        style={{
+          padding: "40px 20px",
+          textAlign: "center",
+          color: MUTED_COLOR,
+          fontSize: "11px",
+        }}
+      >
+        Memuat data kehadiran...
+      </td>
+    </tr>
+  );
+}
+
+/* =========================================================
+   EMPTY
+========================================================= */
+
+function EmptyRow() {
+  return (
+    <tr>
+      <td
+        colSpan={6}
+        style={{
+          padding: "40px 20px",
+          textAlign: "center",
+          color: MUTED_COLOR,
+          fontSize: "11px",
+        }}
+      >
+        Belum ada data kehadiran.
+      </td>
+    </tr>
+  );
+}
+
+/* =========================================================
+   STYLES
+========================================================= */
+
+const headerStyle: CSSProperties = {
+  padding: "11px 12px",
   textAlign: "left",
-  fontSize: "13px",
+  fontSize: "10px",
+  lineHeight: 1.4,
   fontWeight: 600,
   color: HEADER_COLOR,
   whiteSpace: "nowrap",
 };
 
-const cellStyle: React.CSSProperties = {
-  padding: "14px 16px",
-  fontSize: "13px",
-  color: "#333333",
+const cellStyle: CSSProperties = {
+  padding: "11px 12px",
+  fontSize: "10px",
+  lineHeight: 1.4,
+  color: TEXT_COLOR,
   verticalAlign: "middle",
-  whiteSpace: "nowrap",
-};
-
-const emptyStyle: React.CSSProperties = {
-  padding: "48px 20px",
-  textAlign: "center",
-  color: "#999999",
-  fontSize: "14px",
 };

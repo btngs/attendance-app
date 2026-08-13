@@ -5,67 +5,111 @@ import Sidebar from "../../components/Sidebar";
 import SearchBar from "../../components/recap/SearchBar";
 import SortButton from "../../components/recap/SortButton";
 import AttendanceTable from "../../components/recap/AttendanceTable";
+import ExportButton from "../../components/recap/ExportButton";
 import API from "../../services/api";
+import { TABLE_COLUMNS } from "../../constants/rekapitulasi";
+
+import type {
+  RiwayatKehadiran,
+  SortOption,
+  StatusKehadiran,
+} from "../../types/rekapitulasi";
 
 const ATTENDANCE_ENDPOINT = "/attendance";
 
-interface AttendanceRecord {
-  id: number | string;
-  date: string;
-  employeeName: string;
-  checkIn: string | null;
-  checkOut: string | null;
-  lateMinutes: number | null;
-  status: string;
-}
+/* =========================================================
+   RAW SHAPE RETURNED BY THE BACKEND
+   (Field names differ depending on the endpoint, so every
+   variant we might get back is accepted here.)
+   ========================================================= */
 
 interface ApiAttendanceRecord {
   id?: number | string;
+  _id?: number | string;
+
   date?: string;
+  tanggal?: string;
   attendance_date?: string;
 
   employeeName?: string;
   employee_name?: string;
+  namaKaryawan?: string;
   name?: string;
 
   checkIn?: string | null;
   check_in?: string | null;
+  waktuMasuk?: string | null;
 
   checkOut?: string | null;
   check_out?: string | null;
+  waktuKeluar?: string | null;
 
   lateMinutes?: number | null;
   late_minutes?: number | null;
+  keterlambatanMenit?: number | null;
 
   status?: string;
   attendance_status?: string;
 }
 
-type SortType = "terbaru" | "terlama" | "nama";
+/* =========================================================
+   NORMALIZE STATUS -> StatusKehadiran
+   ========================================================= */
+
+function normalizeStatus(raw: string | undefined): StatusKehadiran {
+  const value = (raw ?? "").trim().toLowerCase();
+
+  if (value === "hadir" || value === "present" || value === "on time") {
+    return "Hadir";
+  }
+
+  if (value === "terlambat" || value === "late") {
+    return "Terlambat";
+  }
+
+  if (value === "izin" || value === "cuti" || value === "leave") {
+    return "Izin";
+  }
+
+  if (value === "sakit" || value === "sick") {
+    return "Sakit";
+  }
+
+  if (value === "wfh" || value === "work from home") {
+    return "WFH";
+  }
+
+  return "Tidak hadir";
+}
 
 /* =========================================================
-   NORMALIZE API DATA
+   NORMALIZE API DATA -> RiwayatKehadiran
    ========================================================= */
 
 function normalizeAttendance(
   item: ApiAttendanceRecord,
   index: number,
-): AttendanceRecord {
+): RiwayatKehadiran {
   return {
-    id: item.id ?? index,
+    id: item.id ?? item._id ?? index,
 
-    date: item.date ?? item.attendance_date ?? "-",
+    tanggal: item.tanggal ?? item.date ?? item.attendance_date ?? "-",
 
-    employeeName:
-      item.employeeName ?? item.employee_name ?? item.name ?? "Karyawan",
+    namaKaryawan:
+      item.namaKaryawan ??
+      item.employeeName ??
+      item.employee_name ??
+      item.name ??
+      "Karyawan",
 
-    checkIn: item.checkIn ?? item.check_in ?? null,
+    waktuMasuk: item.waktuMasuk ?? item.checkIn ?? item.check_in ?? null,
 
-    checkOut: item.checkOut ?? item.check_out ?? null,
+    waktuKeluar: item.waktuKeluar ?? item.checkOut ?? item.check_out ?? null,
 
-    lateMinutes: item.lateMinutes ?? item.late_minutes ?? null,
+    keterlambatanMenit:
+      item.keterlambatanMenit ?? item.lateMinutes ?? item.late_minutes ?? null,
 
-    status: item.status ?? item.attendance_status ?? "Belum ada status",
+    status: normalizeStatus(item.status ?? item.attendance_status),
   };
 }
 
@@ -94,7 +138,7 @@ function extractAttendanceData(responseData: unknown): ApiAttendanceRecord[] {
 }
 
 /* =========================================================
-   DATE SORTING
+   DATE HELPERS
    ========================================================= */
 
 function getTimestamp(date: string): number {
@@ -103,30 +147,36 @@ function getTimestamp(date: string): number {
   return Number.isNaN(timestamp) ? 0 : timestamp;
 }
 
+const SORT_RANGE_DAYS: Partial<Record<SortOption, number>> = {
+  "7_hari_terakhir": 7,
+  "1_bulan_terakhir": 30,
+  "3_bulan_terakhir": 90,
+};
+
+function isWithinRange(timestamp: number, days: number): boolean {
+  if (timestamp === 0) return false;
+
+  const now = Date.now();
+  const rangeStart = now - days * 24 * 60 * 60 * 1000;
+
+  return timestamp >= rangeStart && timestamp <= now;
+}
+
 /* =========================================================
    EXPORT CSV
    ========================================================= */
 
-function downloadCsv(data: AttendanceRecord[]) {
-  const headers = [
-    "Tanggal",
-    "Nama Karyawan",
-    "Waktu Masuk",
-    "Waktu Keluar",
-    "Keterlambatan",
-    "Status Kehadiran",
-  ];
-
+function downloadCsv(data: RiwayatKehadiran[]) {
   const rows = data.map((item) => [
-    item.date,
-    item.employeeName,
-    item.checkIn ?? "-",
-    item.checkOut ?? "-",
-    item.lateMinutes !== null ? `${item.lateMinutes} menit` : "-",
+    item.tanggal,
+    item.namaKaryawan,
+    item.waktuMasuk ?? "-",
+    item.waktuKeluar ?? "-",
+    item.keterlambatanMenit !== null ? `${item.keterlambatanMenit} menit` : "-",
     item.status,
   ]);
 
-  const csv = [headers, ...rows]
+  const csv = [TABLE_COLUMNS, ...rows]
     .map((row) =>
       row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(","),
     )
@@ -158,9 +208,9 @@ function downloadCsv(data: AttendanceRecord[]) {
 export default function RecapPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
-  const [selectedSort, setSelectedSort] = useState<SortType>("terbaru");
+  const [selectedSort, setSelectedSort] = useState<SortOption>("terbaru");
 
-  const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
+  const [attendanceData, setAttendanceData] = useState<RiwayatKehadiran[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
@@ -203,6 +253,7 @@ export default function RecapPage() {
       window.clearTimeout(timer);
     };
   }, [fetchAttendanceData]);
+
   /* =======================================================
      SEARCH + SORT
      ======================================================= */
@@ -210,20 +261,25 @@ export default function RecapPage() {
   const filteredAndSortedData = useMemo(() => {
     const keyword = searchQuery.trim().toLowerCase();
 
-    const filtered = attendanceData.filter((record) =>
-      record.employeeName.toLowerCase().includes(keyword),
-    );
+    const rangeDays = SORT_RANGE_DAYS[selectedSort];
 
-    return [...filtered].sort((a, b) => {
-      if (selectedSort === "nama") {
-        return a.employeeName.localeCompare(b.employeeName, "id");
+    const filtered = attendanceData.filter((record) => {
+      const matchesKeyword = record.namaKaryawan
+        .toLowerCase()
+        .includes(keyword);
+
+      if (!matchesKeyword) return false;
+
+      if (rangeDays) {
+        return isWithinRange(getTimestamp(record.tanggal), rangeDays);
       }
 
-      const dateA = getTimestamp(a.date);
-      const dateB = getTimestamp(b.date);
-
-      return selectedSort === "terbaru" ? dateB - dateA : dateA - dateB;
+      return true;
     });
+
+    return [...filtered].sort(
+      (a, b) => getTimestamp(b.tanggal) - getTimestamp(a.tanggal),
+    );
   }, [attendanceData, searchQuery, selectedSort]);
 
   /* =======================================================
@@ -327,51 +383,13 @@ export default function RecapPage() {
           >
             <SortButton
               selectedSort={selectedSort}
-              onSortChange={(value) => setSelectedSort(value as SortType)}
+              onSortChange={setSelectedSort}
             />
 
-            <button
-              type="button"
+            <ExportButton
               onClick={handleExport}
               disabled={loading || filteredAndSortedData.length === 0}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                minHeight: "40px",
-                padding: "0 16px",
-                borderRadius: "9px",
-                border: "1px solid #e8a838",
-                backgroundColor:
-                  loading || filteredAndSortedData.length === 0
-                    ? "#f5f5f5"
-                    : "#fef3e2",
-                color:
-                  loading || filteredAndSortedData.length === 0
-                    ? "#aaaaaa"
-                    : "#e8a838",
-                fontSize: "14px",
-                fontWeight: 600,
-                cursor:
-                  loading || filteredAndSortedData.length === 0
-                    ? "not-allowed"
-                    : "pointer",
-                transition:
-                  "background-color 150ms ease, border-color 150ms ease",
-              }}
-              onMouseEnter={(event) => {
-                if (!loading && filteredAndSortedData.length > 0) {
-                  event.currentTarget.style.backgroundColor = "#fff3d6";
-                }
-              }}
-              onMouseLeave={(event) => {
-                if (!loading && filteredAndSortedData.length > 0) {
-                  event.currentTarget.style.backgroundColor = "#fef3e2";
-                }
-              }}
-            >
-              Export
-            </button>
+            />
           </div>
         </section>
 

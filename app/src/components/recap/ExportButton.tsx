@@ -1,29 +1,41 @@
+"use client";
+
+import { Download } from "lucide-react";
+
 interface ExportButtonProps {
-  onClick?: () => void;
+  onClick: () => void;
   disabled?: boolean;
 }
 
-export default function ExportButton({ onClick, disabled }: ExportButtonProps) {
+export default function ExportButton({
+  onClick,
+  disabled = false,
+}: ExportButtonProps) {
   return (
     <button
+      type="button"
       onClick={onClick}
       disabled={disabled}
       style={{
-        padding: '12px 20px',
-        border: 'none',
-        borderRadius: '8px',
-        backgroundColor: 'transparent',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.5 : 1,
-        fontSize: '14px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        color: '#1565c0',
-        fontWeight: '500',
-        whiteSpace: 'nowrap'
+        height: "36px",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "7px",
+        padding: "0 12px",
+        border: "none",
+        backgroundColor: "transparent",
+        color: disabled ? "#aaaaaa" : "#2563eb",
+        fontSize: "11px",
+        fontWeight: 500,
+        cursor: disabled ? "not-allowed" : "pointer",
       }}
     >
+      <Download
+        size={13}
+        strokeWidth={1.8}
+      />
+
       <span>Export</span>
     </button>
   );
