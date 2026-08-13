@@ -1,20 +1,65 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Navbar from '../../components/Navbar';
+import Sidebar from '../../components/Sidebar';
+import API from '../../services/api';
+
+interface UserData {
+  id: string;
+  name: string;
+  email: string;
+  phone_number?: string;
+  role?: string;
+  avatar?: string;
+}
 
 export default function EditProfilePage() {
   const router = useRouter();
+  const [user, setUser] = useState<UserData | null>(null);
   
   const [formData, setFormData] = useState({
-    fullName: '',
-    username: '',
+    name: '',
     email: '',
-    phone: ''
+    phone_number: '',
+    role: '',
+    password: ''
   });
 
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // Load user data from localStorage
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    const token = localStorage.getItem('token');
+    
+    if (!token || !storedUser) {
+      router.push('/src/auth/login');
+      return;
+    }
+
+    try {
+      const userData = JSON.parse(storedUser);
+      setUser(userData);
+      
+      // Pre-fill form dengan data user
+      setFormData({
+        name: userData.name || '',
+        email: userData.email || '',
+        phone_number: userData.phone_number || userData.phone || '',
+        role: userData.role || '',
+        password: '' // Password tidak di-pre-fill untuk keamanan
+      });
+
+      if (userData.avatar) {
+        setPreviewImage(userData.avatar);
+      }
+    } catch (error) {
+      console.error('Gagal parse user data:', error);
+      router.push('/src/auth/login');
+    }
+  }, [router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -32,25 +77,102 @@ export default function EditProfilePage() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Data yang disimpan:', formData);
-    alert('Profile berhasil disimpan!');
-    router.push('/src/admin-side/dashboard');
+    
+    if (!user?.id) {
+      alert('User ID tidak ditemukan. Silakan login ulang.');
+      router.push('/src/auth/login');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Siapkan data dasar yang wajib dikirim
+      const updateData: any = {
+        name: formData.name,
+        email: formData.email,
+        phone_number: formData.phone_number,
+      };
+
+      // Hanya kirim role jika diisi (opsional)
+      if (formData.role.trim()) {
+        updateData.role = formData.role.trim();
+      }
+
+      // Hanya kirim password jika diisi (opsional)
+      if (formData.password.trim()) {
+        updateData.password = formData.password;
+      }
+
+      console.log('Sending update request...', updateData);
+
+      // Panggil API untuk update profile
+      await API.put(`/users/update/${user.id}`, updateData);
+      
+      alert('Profile berhasil disimpan!');
+      
+      // Update localStorage dengan data baru
+      const updatedUser = { 
+        ...user, 
+        name: formData.name,
+        email: formData.email,
+        phone_number: formData.phone_number,
+        role: formData.role.trim() || user.role // Gunakan role baru jika ada, atau pertahankan yang lama
+      };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      router.push('/src/admin-side/dashboard');
+    } catch (error: any) {
+      console.error('Gagal update profile:', error);
+      
+      // Handle error 403/401 (Token expired)
+      if (error.response?.status === 403 || error.response?.status === 401) {
+        alert('Sesi Anda telah berakhir. Silakan login ulang.');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        router.push('/src/auth/login');
+        return;
+      }
+      
+      const errorMessage = error.response?.data?.message || 'Gagal menyimpan profile. Silakan coba lagi.';
+      alert(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCancel = () => {
     router.back();
   };
 
+  if (!user) {
+    return (
+      <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
+        <Sidebar />
+        <main style={{ 
+          marginLeft: '260px', 
+          width: 'calc(100% - 260px)',
+          padding: '40px 60px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{ color: '#e8a838' }}>Loading...</div>
+        </main>
+      </div>
+    );
+  }
+
   return (
-    <main style={{ backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
-      <Navbar />
+    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
+      <Sidebar />
       
-      <section style={{ 
-        padding: '40px 60px',
-        maxWidth: '1000px',
-        margin: '0 auto'
+      <main style={{ 
+        marginLeft: '260px', 
+        width: 'calc(100% - 260px)',
+        padding: '40px 60px'
       }}>
         {/* Header dengan Tombol Back */}
         <div style={{ 
@@ -84,12 +206,13 @@ export default function EditProfilePage() {
           </h1>
         </div>
 
-        {/* Card Form - Lebih compact */}
+        {/* Card Form */}
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '12px',
           padding: '32px',
-          border: '1px solid #e5e5e5'
+          border: '1px solid #e5e5e5',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
         }}>
           <form onSubmit={handleSubmit}>
             <div style={{
@@ -104,7 +227,7 @@ export default function EditProfilePage() {
                 flexDirection: 'column',
                 alignItems: 'center'
               }}>
-                {/* Avatar Circle - Lebih kecil */}
+                {/* Avatar Circle */}
                 <div style={{
                   width: '120px',
                   height: '120px',
@@ -123,6 +246,7 @@ export default function EditProfilePage() {
                       style={{
                         width: '100%',
                         height: '100%',
+                        borderRadius: '50%',
                         objectFit: 'cover'
                       }}
                     />
@@ -132,7 +256,7 @@ export default function EditProfilePage() {
                       fontWeight: '700',
                       color: '#e8a838'
                     }}>
-                      NL
+                      {user?.name ? user.name.charAt(0).toUpperCase() : 'A'}
                     </span>
                   )}
                 </div>
@@ -168,33 +292,11 @@ export default function EditProfilePage() {
                 <div>
                   <input
                     type="text"
-                    name="fullName"
+                    name="name"
                     placeholder="Nama Lengkap"
-                    value={formData.fullName}
+                    value={formData.name}
                     onChange={handleChange}
-                    style={{
-                      width: '100%',
-                      padding: '12px 14px',
-                      border: '1px solid #e0e0e0',
-                      borderRadius: '6px',
-                      fontSize: '13px',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                      transition: 'border-color 0.2s'
-                    }}
-                    onFocus={(e) => e.currentTarget.style.borderColor = '#e8a838'}
-                    onBlur={(e) => e.currentTarget.style.borderColor = '#e0e0e0'}
-                  />
-                </div>
-
-                {/* Username */}
-                <div>
-                  <input
-                    type="text"
-                    name="username"
-                    placeholder="username"
-                    value={formData.username}
-                    onChange={handleChange}
+                    required
                     style={{
                       width: '100%',
                       padding: '12px 14px',
@@ -218,6 +320,7 @@ export default function EditProfilePage() {
                     placeholder="email"
                     value={formData.email}
                     onChange={handleChange}
+                    required
                     style={{
                       width: '100%',
                       padding: '12px 14px',
@@ -237,9 +340,55 @@ export default function EditProfilePage() {
                 <div>
                   <input
                     type="tel"
-                    name="phone"
+                    name="phone_number"
                     placeholder="nomor telepon"
-                    value={formData.phone}
+                    value={formData.phone_number}
+                    onChange={handleChange}
+                    style={{
+                      width: '100%',
+                      padding: '12px 14px',
+                      border: '1px solid #e0e0e0',
+                      borderRadius: '6px',
+                      fontSize: '13px',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                      transition: 'border-color 0.2s'
+                    }}
+                    onFocus={(e) => e.currentTarget.style.borderColor = '#e8a838'}
+                    onBlur={(e) => e.currentTarget.style.borderColor = '#e0e0e0'}
+                  />
+                </div>
+
+                {/* Role (Opsional) */}
+                <div>
+                  <input
+                    type="text"
+                    name="role"
+                    placeholder="role (opsional, misal: admin / karyawan)"
+                    value={formData.role}
+                    onChange={handleChange}
+                    style={{
+                      width: '100%',
+                      padding: '12px 14px',
+                      border: '1px solid #e0e0e0',
+                      borderRadius: '6px',
+                      fontSize: '13px',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                      transition: 'border-color 0.2s'
+                    }}
+                    onFocus={(e) => e.currentTarget.style.borderColor = '#e8a838'}
+                    onBlur={(e) => e.currentTarget.style.borderColor = '#e0e0e0'}
+                  />
+                </div>
+
+                {/* Password (Opsional) */}
+                <div>
+                  <input
+                    type="password"
+                    name="password"
+                    placeholder="password (opsional, kosongkan jika tidak ingin mengubah)"
+                    value={formData.password}
                     onChange={handleChange}
                     style={{
                       width: '100%',
@@ -266,39 +415,42 @@ export default function EditProfilePage() {
                   <button
                     type="button"
                     onClick={handleCancel}
+                    disabled={loading}
                     style={{
                       padding: '8px 20px',
                       border: 'none',
                       borderRadius: '6px',
                       backgroundColor: 'transparent',
-                      cursor: 'pointer',
+                      cursor: loading ? 'not-allowed' : 'pointer',
                       fontSize: '13px',
-                      color: '#666'
+                      color: '#666',
+                      opacity: loading ? 0.5 : 1
                     }}
                   >
                     Batal
                   </button>
                   <button
                     type="submit"
+                    disabled={loading}
                     style={{
                       padding: '8px 20px',
                       border: 'none',
                       borderRadius: '6px',
-                      backgroundColor: '#e8a838',
+                      backgroundColor: loading ? '#ccc' : '#e8a838',
                       color: '#ffffff',
-                      cursor: 'pointer',
+                      cursor: loading ? 'not-allowed' : 'pointer',
                       fontSize: '13px',
                       fontWeight: '600'
                     }}
                   >
-                    Simpan
+                    {loading ? 'Menyimpan...' : 'Simpan'}
                   </button>
                 </div>
               </div>
             </div>
           </form>
         </div>
-      </section>
-    </main>
+      </main>
+    </div>
   );
 }
